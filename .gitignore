@@ -1,0 +1,8 @@
+.env
+notes
+.venv
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db

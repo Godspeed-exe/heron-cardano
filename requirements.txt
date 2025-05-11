@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+python-dotenv
+psycopg2-binary
+pydantic
+celery
+redis
+python-redis-lock
+cryptography
+pycardano
