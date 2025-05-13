@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI # type: ignore
 from heron_app.api.routes import router as api_router
 from heron_app.db.database import SessionLocal
 from heron_app.db.models.transaction import Transaction

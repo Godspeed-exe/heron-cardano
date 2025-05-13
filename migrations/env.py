@@ -1,11 +1,11 @@
 from logging.config import fileConfig
 import os
-from sqlalchemy import engine_from_config, pool
-from alembic import context
+from sqlalchemy import engine_from_config, pool # type: ignore
+from alembic import context # type: ignore
 from dotenv import load_dotenv
 
 from heron_app.db.database import Base
-from heron_app.db.models import wallet, transaction
+from heron_app.db.models import wallet, transaction, transaction_output, transaction_output_asset
 
 load_dotenv()
 

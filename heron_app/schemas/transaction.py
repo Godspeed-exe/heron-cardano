@@ -1,19 +1,17 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
+from heron_app.schemas.transaction_output import TransactionOutputSchema
 
 class TransactionCreate(BaseModel):
     wallet_id: UUID
-    to_address: str
-    amount_lovelace: int
+    outputs: List[TransactionOutputSchema]
     metadata: Optional[dict] = None
 
 class TransactionOut(BaseModel):
     id: UUID
     wallet_id: UUID
-    to_address: str
-    amount_lovelace: int
     metadata_json: Optional[dict] = None
     status: str
     created_at: datetime
@@ -22,6 +20,7 @@ class TransactionOut(BaseModel):
     tx_size: Optional[int] = None
     updated_at: datetime
     error_message: Optional[str] = None
+    outputs: List[TransactionOutputSchema]
 
     class Config:
         orm_mode = True

@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, DateTime
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime # type: ignore
+from sqlalchemy.dialects.postgresql import UUID # type: ignore
 import uuid
 from datetime import datetime
 from heron_app.db.database import Base

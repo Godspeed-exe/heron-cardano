@@ -1,11 +1,27 @@
 import os
-from fastapi import HTTPException
+from fastapi import HTTPException # type: ignore
 from blockfrost import BlockFrostApi, ApiError, ApiUrls,BlockFrostIPFS
 from heron_app.core.config import settings
 from heron_app.schemas.wallet import WalletOut
 from pycardano import *
 import os
 
+
+class TransactionSubmitError(Exception):
+    """Base class for transaction submit errors"""
+    pass
+
+class ValueNotConservedError(TransactionSubmitError):
+    """Raised when the input/output values don't match"""
+    pass
+
+class BadInputsError(TransactionSubmitError):
+    """Raised when UTXOs used as inputs are invalid or already spent"""
+    pass
+
+class GenericSubmitError(TransactionSubmitError):
+    """Fallback for other transaction submit errors"""
+    pass
 
 network = os.getenv('network')
 

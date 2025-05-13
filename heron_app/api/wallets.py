@@ -1,12 +1,12 @@
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path  # type: ignore
 from uuid import uuid4
 from datetime import datetime
 import os
 from cryptography.fernet import Fernet
 from pycardano import crypto, ExtendedSigningKey, Address, Network
 from blockfrost import ApiUrls
-from sqlalchemy.exc import IntegrityError
-import psycopg2
+from sqlalchemy.exc import IntegrityError # type: ignore
+import psycopg2 # type: ignore
 
 from heron_app.schemas.wallet import WalletCreate
 from heron_app.db.database import SessionLocal

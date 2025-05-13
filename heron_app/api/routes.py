@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter  # type: ignore
 from heron_app.api.wallets import router as wallet_router
 from heron_app.api.transactions import router as tx_router
 

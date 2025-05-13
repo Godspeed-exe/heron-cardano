@@ -9,4 +9,4 @@ celery
 redis
 python-redis-lock
 cryptography
-pycardano
+pycardano==0.13.2

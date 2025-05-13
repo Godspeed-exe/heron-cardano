@@ -39,7 +39,11 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
-    command: celery -A heron_app.workers.worker worker --loglevel=info --queues=transactions
+
+    command: >
+      sh -c "alembic upgrade head &&
+            celery -A heron_app.workers.worker worker --loglevel=info --queues=transactions"
+            
     volumes:
       - .:/app
     env_file:

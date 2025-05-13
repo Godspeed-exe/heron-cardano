@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON, func  # type: ignore
+import sqlalchemy as sa # type: ignore
+from sqlalchemy.orm import relationship # type: ignore
+from sqlalchemy.dialects.postgresql import UUID # type: ignore
 import uuid
 from datetime import datetime
 from heron_app.db.database import Base
@@ -8,9 +10,11 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    # ✅ Add this line: autoincrement + server_default + index
+    numeric_id = Column(Integer, autoincrement=True, server_default=sa.text("nextval('transaction_numeric_id_seq')"), nullable=False, index=True)
+
     wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"), nullable=False)
-    to_address = Column(String, nullable=False)
-    amount_lovelace = Column(Integer, nullable=False)
     metadata_json = Column(JSON, nullable=True)
     status = Column(String, default="queued")
     tx_hash = Column(String, nullable=True)
@@ -19,3 +23,4 @@ class Transaction(Base):
     error_message = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    outputs = relationship("TransactionOutput", backref="transaction", cascade="all, delete-orphan")
