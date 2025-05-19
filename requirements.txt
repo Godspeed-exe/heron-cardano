@@ -7,6 +7,5 @@ psycopg2-binary
 pydantic
 celery
 redis
-python-redis-lock
 cryptography
 pycardano==0.13.2

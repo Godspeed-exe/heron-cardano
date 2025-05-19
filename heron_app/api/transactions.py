@@ -6,7 +6,7 @@ from heron_app.db.models.wallet import Wallet
 from heron_app.db.models.transaction_output import TransactionOutput
 from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
 from heron_app.db.database import SessionLocal
-from heron_app.workers.tasks import process_transaction
+from heron_app.workers.tasks import process_transaction, enqueue_transaction
 
 from uuid import uuid4
 from datetime import datetime
@@ -65,7 +65,8 @@ def submit_transaction(tx: TransactionCreate):
         )
 
         # Trigger async task
-        process_transaction.delay(str(tx_record.id))
+        queue_name = f"wallet_{tx_record.wallet_id}"
+        process_transaction.apply_async(args=[tx_record.id], queue=queue_name)
 
         return db_tx
 

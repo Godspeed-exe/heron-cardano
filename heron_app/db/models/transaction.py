@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, JSON, func  # type: ignore
+from sqlalchemy import Column, String, Sequence,  Integer, DateTime, ForeignKey, JSON, func  # type: ignore
 import sqlalchemy as sa # type: ignore
 from sqlalchemy.orm import relationship # type: ignore
 from sqlalchemy.dialects.postgresql import UUID # type: ignore
@@ -12,7 +12,12 @@ class Transaction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     # ✅ Add this line: autoincrement + server_default + index
-    numeric_id = Column(Integer, autoincrement=True, server_default=sa.text("nextval('transaction_numeric_id_seq')"), nullable=False, index=True)
+    numeric_id = Column(
+        Integer,
+        Sequence("transaction_numeric_id_seq"),
+        nullable=False,
+        unique=True
+    )
 
     wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"), nullable=False)
     metadata_json = Column(JSON, nullable=True)
@@ -23,4 +28,5 @@ class Transaction(Base):
     error_message = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    retries = Column(Integer, default=0)
     outputs = relationship("TransactionOutput", backref="transaction", cascade="all, delete-orphan")

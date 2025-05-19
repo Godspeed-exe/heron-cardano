@@ -12,6 +12,7 @@ from heron_app.schemas.wallet import WalletCreate
 from heron_app.db.database import SessionLocal
 from heron_app.db.models.wallet import Wallet
 from heron_app.utils.cardano import get_balance
+from heron_app.workers.start_wallet_worker import start_worker
 
 router = APIRouter()
 
@@ -47,6 +48,9 @@ def create_wallet(data: WalletCreate):
         )
         session.add(wallet_record)
         session.commit()
+
+        start_worker(wallet_record.id)
+
         return {"id": wallet_record.id, "address": wallet_record.address}
 
     except IntegrityError as e:

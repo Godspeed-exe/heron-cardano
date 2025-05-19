@@ -13,6 +13,16 @@ services:
     depends_on:
       - db
       - redis
+    command: >
+      /wait-for-it.sh db:5432 --timeout=60 --strict --
+      uvicorn heron_app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
 
   db:
     image: postgres:14
@@ -27,30 +37,25 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  redis:
-    image: redis:7
-    container_name: heron_redis
-    ports:
-      - "6379:6379"
 
   worker:
     build: .
     container_name: heron_worker
     environment:
       - PYTHONPATH=/app
-      - REDIS_URL=redis://redis:6379/0
 
     command: >
+      /wait-for-it.sh db:5432 --timeout=60 --strict --
       sh -c "alembic upgrade head &&
-            celery -A heron_app.workers.worker worker --loglevel=info --queues=transactions"
+         celery -A heron_app.workers.worker worker -Q default --loglevel=info"
             
     volumes:
       - .:/app
     env_file:
       - .env
     depends_on:
-      - redis
       - db
-
+      - redis
+      
 volumes:
   postgres_data:
