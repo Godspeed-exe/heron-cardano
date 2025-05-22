@@ -6,7 +6,7 @@ from uuid import UUID
 API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 10000
+NUM_EXECUTIONS = 1
 
 
 def load_wallet():
@@ -43,7 +43,16 @@ def generate_transaction_payload(wallet):
     metadata = {
         674: {
             "msg": "Hello Cardano!"
-        }
+        },
+        675: {
+            "msg": "Hello Cardano!"
+        },
+        721: {
+            "msg": "Hello Cardano!"
+        },
+        10000: {
+            "msg": "Hello Cardano!"
+        },
         }
 
     return {

@@ -1,4 +1,5 @@
 services:
+
   api:
     build: .
     container_name: heron_api
@@ -37,6 +38,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  init_oura_config:
+    build: .
+    container_name: init_oura_config
+    command: >
+      /wait-for-it.sh db:5432 --timeout=60 --strict --
+      sh -c "alembic upgrade head && python oura/prepare_oura.py"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - BLOCKFROST_PROJECT_ID=${BLOCKFROST_PROJECT_ID}
+      - network=${network}
+    depends_on:
+      - db
 
   worker:
     build: .
@@ -56,6 +72,37 @@ services:
     depends_on:
       - db
       - redis
-      
+  oura:
+    image: ghcr.io/txpipe/oura:latest
+    platform: linux/amd64
+    container_name: oura
+    volumes:
+      - ./oura:/app/oura
+    entrypoint: ["oura", "daemon", "--config", "/app/oura/config.toml"]
+    restart: unless-stopped
+    depends_on:
+      - init_oura_config
+    dns:
+      - 8.8.8.8
+
+  oura_worker:
+    build: .
+    container_name: oura_worker
+    command: celery -A heron_app.workers.oura_listener worker --loglevel=info -n oura_worker
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - oura
+    environment:
+      - PYTHONPATH=/app
+
+  debug:
+    image: alpine:latest
+    container_name: debug
+    command: sh
+    stdin_open: true
+    tty: true
+
 volumes:
   postgres_data:

@@ -7,11 +7,14 @@ from heron_app.db.models.transaction_output import TransactionOutput
 from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
 from heron_app.db.database import SessionLocal
 from heron_app.workers.tasks import process_transaction, enqueue_transaction
+from heron_app.utils.registry_loader import get_registry_labels
 
 from uuid import uuid4
 from datetime import datetime
 
+
 router = APIRouter()
+
 
 
 @router.post("/", response_model=TransactionOut)
@@ -21,12 +24,43 @@ def submit_transaction(tx: TransactionCreate):
         wallet = session.query(Wallet).filter(Wallet.id == tx.wallet_id).first()
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
+        
+
+
+        
+
+        # Inside your endpoint
+        if tx.metadata is not None:
+            if not isinstance(tx.metadata, dict):
+                raise HTTPException(status_code=400, detail="Metadata must be a dictionary")
+            
+
+            valid_labels = get_registry_labels()
+
+            invalid_labels = []
+            for key in tx.metadata.keys():
+                try:
+                    int_key = int(key)
+                except ValueError:
+                    raise HTTPException(status_code=400, detail=f"Metadata key '{key}' is not a valid integer")
+                
+                if int_key not in valid_labels:
+                    invalid_labels.append(int_key)
+
+            if invalid_labels:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"The following metadata labels are not registered in CIP-0010: {invalid_labels}"
+                )
+
+
+        metadata_with_int_keys = {int(k): v for k, v in tx.metadata.items()}
 
         # Create base transaction record
         tx_record = Transaction(
             id=uuid4(),
             wallet_id=tx.wallet_id,
-            metadata_json=tx.metadata,
+            metadata_json=metadata_with_int_keys,
             status="queued",
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),

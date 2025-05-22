@@ -5,6 +5,7 @@ from sqlalchemy.dialects.postgresql import UUID # type: ignore
 import uuid
 from datetime import datetime
 from heron_app.db.database import Base
+from heron_app.db.models.transaction_output import TransactionOutput
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -29,4 +30,5 @@ class Transaction(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     retries = Column(Integer, default=0)
+    confirmed_at = Column(DateTime, nullable=True)
     outputs = relationship("TransactionOutput", backref="transaction", cascade="all, delete-orphan")

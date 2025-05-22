@@ -287,6 +287,12 @@ def process_transaction(self, transaction_id):
             time.sleep(20)
             reload_utxos(wallet.address)
 
+        if tx.retries <= 5:
+            logger.info(f"Retrying transaction {transaction_id} (attempt {tx.retries})")
+            tx.status = "queued"
+            session.commit()
+            enqueue_transaction(transaction_id)
+
     except Exception as e:
         logger.error(f"Transaction {transaction_id} failed: {str(e)}")
         logger.debug(traceback.format_exc())

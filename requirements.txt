@@ -9,3 +9,4 @@ celery
 redis
 cryptography
 pycardano==0.13.2
+jinja2

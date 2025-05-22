@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship # type: ignore
 import uuid
 from datetime import datetime
 from heron_app.db.database import Base
-
+from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
 
 class TransactionOutput(Base):
     __tablename__ = "transaction_outputs"
