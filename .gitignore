@@ -6,3 +6,4 @@ notes
 *.pyo
 *.pyd
 *.db
+oura/cursor
