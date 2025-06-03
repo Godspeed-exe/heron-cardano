@@ -5,7 +5,7 @@ from alembic import context # type: ignore
 from dotenv import load_dotenv
 
 from heron_app.db.database import Base
-from heron_app.db.models import wallet, transaction, transaction_output, transaction_output_asset
+from heron_app.db.models import wallet, transaction, transaction_output, transaction_output_asset, minting_policies
 
 load_dotenv()
 

@@ -7,7 +7,8 @@ API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
 NUM_EXECUTIONS = 1000
-
+POLICY="63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e5"
+ASSET="0014df104d494c4b"
 
 def load_wallet():
     response = requests.get(WALLETS_ENDPOINT)
@@ -24,32 +25,31 @@ def load_wallet():
     return wallet 
 
 def generate_transaction_payload(wallet):
-    num_outputs = random.randint(1, 30)
+    num_outputs = random.randint(1, 3)
     outputs = []
 
     for _ in range(num_outputs):
-        ada = random.randint(2, 10)
+        ada = random.randint(0, 2)
+        asset = random.randint(1, 2)
         outputs.append({
             "address": wallet["address"],
             "assets": [
                 {
                     "unit": "lovelace",
                     "quantity": str(ada * 1_000_000)
+                },
+                {
+                    "unit": f"{POLICY}{ASSET}",
+                    "quantity": str(asset * 1_000_000)
                 }
             ]
         })
 
 
-    metadata = {
-        674: {
-            "msg": "Hello Cardano!"
-        }
-        }
 
     return {
         "wallet_id": wallet["id"],
-        "outputs": outputs,
-        "metadata": metadata
+        "outputs": outputs
     }
 
 def main():

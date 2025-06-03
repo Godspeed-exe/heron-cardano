@@ -6,7 +6,13 @@ from uuid import UUID
 API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 1000
+NUM_EXECUTIONS = 200
+UNITS=[
+    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df104c51", #LQ
+    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df10494e4459", #INDY
+    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df104d494c4b", #MILK
+    "bfcf49670366e15d7236d0a775bc764d61cb97b4c1f70e730c4eb6d45a4f4f" #ZOO
+    ]
 
 
 def load_wallet():
@@ -24,12 +30,15 @@ def load_wallet():
     return wallet 
 
 def generate_transaction_payload(wallet):
-    num_outputs = random.randint(1, 30)
+    num_outputs = random.randint(1, 3)
     outputs = []
 
     for _ in range(num_outputs):
-        ada = random.randint(2, 10)
-        outputs.append({
+        ada = random.randint(0, 2)
+        
+        number_of_assets = random.randint(1, len(UNITS))
+
+        payload = {
             "address": wallet["address"],
             "assets": [
                 {
@@ -37,19 +46,24 @@ def generate_transaction_payload(wallet):
                     "quantity": str(ada * 1_000_000)
                 }
             ]
-        })
-
-
-    metadata = {
-        674: {
-            "msg": "Hello Cardano!"
         }
-        }
+
+        for insert_asset in range(number_of_assets):
+            unit = random.choice(UNITS)
+            asset = random.randint(1, 20)
+
+            payload["assets"].append({
+                "unit": f"{unit}",
+                "quantity": str(asset * 100_000)
+            })
+
+        outputs.append(payload)
+        
+
 
     return {
         "wallet_id": wallet["id"],
-        "outputs": outputs,
-        "metadata": metadata
+        "outputs": outputs
     }
 
 def main():

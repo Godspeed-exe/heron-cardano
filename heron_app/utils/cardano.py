@@ -3,9 +3,25 @@ from fastapi import HTTPException # type: ignore
 from blockfrost import BlockFrostApi, ApiError, ApiUrls,BlockFrostIPFS
 from heron_app.core.config import settings
 from heron_app.schemas.wallet import WalletOut
-from pycardano import *
+from pycardano import (
+    PaymentKeyPair,
+    PaymentSigningKey,
+    PaymentVerificationKey,
+    ScriptAll,
+    ScriptPubkey,
+    InvalidHereAfter,
+)
+from datetime import datetime, timezone
+from typing import Optional
+
 import os
 
+SLOTS_PER_SECOND = 1  # Preprod is 1 slot/sec
+NETWORK_START = datetime(2020, 7, 29, tzinfo=timezone.utc)  # Shelley start
+
+def utc_to_slot(dt: datetime) -> int:
+    delta = dt - NETWORK_START
+    return int(delta.total_seconds() * SLOTS_PER_SECOND)
 
 class TransactionSubmitError(Exception):
     """Base class for transaction submit errors"""
@@ -56,3 +72,26 @@ def get_balance(address: str) -> dict:
         if e.status_code == 404:
             return {"lovelace": "0", "assets": {}}        
         raise HTTPException(status_code=500, detail=f"Blockfrost API error: {e}")
+    
+
+def generate_policy(lock_date: Optional[datetime] = None):
+    # 1. Generate key pair
+    key_pair = PaymentKeyPair.generate()
+    skey = key_pair.signing_key
+    vkey = key_pair.verification_key
+
+    # 2. Create script components
+    pubkey_script = ScriptPubkey(vkey.hash())
+    scripts = [pubkey_script]
+
+    locking_slot = None
+    if lock_date:
+        locking_slot = utc_to_slot(lock_date)
+        scripts.append(InvalidHereAfter(locking_slot))
+
+    policy = ScriptAll(scripts)
+    policy_id = policy.hash().payload.hex()
+
+
+
+    return policy_id, skey.to_cbor_hex(), locking_slot

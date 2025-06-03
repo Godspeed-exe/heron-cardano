@@ -27,7 +27,7 @@ def submit_transaction(tx: TransactionCreate):
         
 
 
-        
+        metadata_with_int_keys = None
 
         # Inside your endpoint
         if tx.metadata is not None:
@@ -54,7 +54,7 @@ def submit_transaction(tx: TransactionCreate):
                 )
 
 
-        metadata_with_int_keys = {int(k): v for k, v in tx.metadata.items()}
+            metadata_with_int_keys = {int(k): v for k, v in tx.metadata.items()}
 
         # Create base transaction record
         tx_record = Transaction(

@@ -23,7 +23,7 @@ def requeue_pending_transactions():
         for wallet in wallets:
             start_worker(str(wallet.id))
 
-        time.sleep(10)  # Wait for workers to start
+        time.sleep(2)  # Wait for workers to start
 
         pending_txs = session.query(Transaction).filter_by(status="queued").all()
         for tx in pending_txs:

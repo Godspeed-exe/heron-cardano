@@ -5,9 +5,7 @@ magic = 1
 min_depth = 10
 
 [source.intersect]
-type = "Point"
-
-value = [ 92218109, "b4475ba4e9e2531c88ecfb0620e8bd50c394060644ed69452f72c38d904f25a1" ]
+type = "Tip"
 
 
 [source.mapper]
