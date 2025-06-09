@@ -18,8 +18,13 @@ from pycardano import (
     crypto, ExtendedSigningKey, TransactionInput, TransactionOutput as CardanoTxOutput,
     TransactionBody, TransactionWitnessSet, VerificationKeyWitness, fee, Value, MultiAsset,
     Transaction as CardanoTransaction, Address, BlockFrostChainContext, min_lovelace_post_alonzo,
-    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO
+    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData
 )
+
+from pycardano.plutus import RawPlutusData, Datum
+
+import cbor2
+from typing import Any, Dict, List, Union, Mapping, Optional
 
 import hashlib
 from pycardano.exception import TransactionFailedException, InsufficientUTxOBalanceException, UTxOSelectionException
@@ -87,6 +92,44 @@ def reload_utxos(address):
 
     set_utxos_to_cache(address, all_utxos)
 
+
+
+def dict_to_datum(obj: dict) -> RawPlutusData:
+    def convert(o):
+        if isinstance(o, dict):
+            return {convert(k): convert(v) for k, v in o.items()}
+        elif isinstance(o, list):
+            return [convert(i) for i in o]
+        elif isinstance(o, str):
+            return o.encode("utf-8")  # Convert strings to bytes
+        elif isinstance(o, (int, bytes)):
+            return o
+        else:
+            raise TypeError(f"Unsupported type in datum: {type(o)}")
+
+    if "version" in obj and isinstance(obj["version"], int) and obj["version"] > 0:
+        version = obj["version"]
+        del obj["version"]
+    elif "version" in obj and isinstance(obj["version"], str):
+        try:
+            version = int(obj["version"])
+            del obj["version"]
+        except ValueError:
+            logger.warning(f"Invalid version format in datum: {obj['version']}, defaulting to 1")
+            version = 1
+    else:
+        version = 1
+
+
+    converted = convert(obj)
+
+
+    tag121_construct = cbor2.CBORTag(121, [converted, version])
+
+
+    return RawPlutusData(tag121_construct)
+
+
 @celery.task(name="heron_app.workers.tasks.process_transaction", bind=True)
 def process_transaction(self, transaction_id):
 
@@ -140,12 +183,9 @@ def process_transaction(self, transaction_id):
 
         builder = TransactionBuilder(context)
 
-
-
-
-
         assets_needed["lovelace"] = MAX_FEE
 
+        print(f"Assets needed: {assets_needed}")
 
         for out in outputs_db:
             val = Value(0)
@@ -183,8 +223,26 @@ def process_transaction(self, transaction_id):
                     assets_needed["lovelace"] = assets_needed["lovelace"] - val.coin + min_ada_required
                     val.coin = min_ada_required
 
-            builder.add_output(CardanoTxOutput(Address.from_primitive(out.address), val))
 
+            if out.datum and isinstance(out.datum, dict):
+
+
+                inline_datum = dict_to_datum(out.datum)
+
+
+                builder.add_output(CardanoTxOutput(
+                    Address.from_primitive(out.address),
+                    val,
+                    datum=inline_datum
+                ))
+
+            else:
+                logger.debug(f"Adding output without inline datum.")
+
+                builder.add_output(CardanoTxOutput(
+                    Address.from_primitive(out.address),
+                    val
+                ))
 
 
 
@@ -363,7 +421,12 @@ def process_transaction(self, transaction_id):
         final_body = final_tx.transaction_body
 
 
-        logger.debug(f"Final transaction body: {final_body}")    
+        logger.info(f"Final transaction body: {final_body}")    
+
+        logger.info(f"Data hash: {final_body.script_data_hash}")
+
+    
+        logger.info(f"final_tx: {final_tx}")
 
         try:
             tx_hash = context.submit_tx(final_tx.to_cbor())
@@ -378,6 +441,7 @@ def process_transaction(self, transaction_id):
             elif "ValueNotConservedUTxO" in error_json:
                 raise BadInputsError("Bad or spent input UTXO detected.") from tfe
             else:
+                logger.error(f"Unhandled submit error: {error_json}")
                 raise GenericSubmitError("Unhandled submit error occurred.") from tfe
             
 

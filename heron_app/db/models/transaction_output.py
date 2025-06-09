@@ -13,6 +13,7 @@ class TransactionOutput(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     transaction_id = Column(Integer, ForeignKey("transactions.numeric_id"), nullable=False)
     address = Column(String, nullable=False)
+    datum = Column(JSON, nullable=True)  # JSON for inline datum
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -9,6 +9,9 @@ class TransactionCreate(BaseModel):
     outputs: List[TransactionOutputSchema]
     metadata: Optional[dict] = None
 
+    class Config:
+        from_attributes = True
+
 class TransactionOut(BaseModel):
     id: UUID
     wallet_id: UUID
@@ -23,4 +26,4 @@ class TransactionOut(BaseModel):
     outputs: List[TransactionOutputSchema]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

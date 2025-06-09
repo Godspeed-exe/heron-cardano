@@ -1,33 +1,41 @@
 import subprocess
-import sys
-import json
 import os
+import socket
 
 def is_worker_alive(wallet_id: str) -> bool:
-    queue_name = f"wallet_{wallet_id}"
-    nodename_prefix = f"{queue_name}@"
-
+    """
+    Ask Celery for all of its registered nodes (with `status`),
+    then see if any of them start with "wallet_<id>@".
+    """
+    queue_prefix = f"wallet_{wallet_id}@"
     try:
-        output = subprocess.check_output([
-            "celery", "-A", "heron_app.workers.worker", "inspect", "ping", "--timeout=2", "--destination", nodename_prefix + "%h"
-        ], stderr=subprocess.DEVNULL)
-        
-        if nodename_prefix in output.decode():
-            return True
+        # `status` will list all nodes that have ever joined the cluster
+        out = subprocess.check_output(
+            ["celery", "-A", "heron_app.workers.worker", "status"],
+            stderr=subprocess.DEVNULL
+        )
+        text = out.decode("utf-8")
+        # look for any line like "-> wallet_<id>@<hostname>: OK"
+        return any(line.strip().startswith("-> "+queue_prefix) for line in text.splitlines())
     except subprocess.CalledProcessError:
-        pass
-
-    return False
+        # if Celery isn't up yet, status will fail; treat that as "no node"
+        return False
 
 def start_worker(wallet_id: str):
+    """
+    Launch exactly one celery worker on queue `wallet_<id>` using
+    a unique node name that includes this container's hostname.
+    """
     queue_name = f"wallet_{wallet_id}"
-    nodename = f"{queue_name}@{os.getenv('HOSTNAME', 'default')}-{wallet_id[:8]}"  # ensure unique nodename across restarts
+    # use the container's hostname so that repeated restarts don't collide
+    host = socket.gethostname()
+    nodename = f"{queue_name}@{host}"
 
     if is_worker_alive(wallet_id):
-        print(f"[Worker] {nodename} is already running.")
+        print(f"[Worker] {nodename} is already running, skipping launch")
         return
 
-    print(f"[Worker] Starting new worker for {queue_name}")
+    print(f"[Worker] Starting new worker for queue={queue_name} as node={nodename}")
     subprocess.Popen([
         "celery", "-A", "heron_app.workers.worker", "worker",
         "-Q", queue_name,

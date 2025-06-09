@@ -6,13 +6,7 @@ from uuid import UUID
 API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 2000
-UNITS=[
-    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df104c51", #LQ
-    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df10494e4459", #INDY
-    "63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e50014df104d494c4b", #MILK
-    "bfcf49670366e15d7236d0a775bc764d61cb97b4c1f70e730c4eb6d45a4f4f" #ZOO
-    ]
+NUM_EXECUTIONS = 1
 
 
 def load_wallet():
@@ -30,35 +24,43 @@ def load_wallet():
     return wallet 
 
 def generate_transaction_payload(wallet):
-    num_outputs = random.randint(1, 3)
+    num_outputs = 1
     outputs = []
 
-    for _ in range(num_outputs):
-        ada = random.randint(0, 2)
-        
-        number_of_assets = random.randint(1, len(UNITS))
+    inline_datum = {
+        "name": "NerdsWifLambo",
+        "description": "Lambo's for everyone",
+        "ticker": "NwifLAMBO",
+        "decimals": 6,
+        "url": "https://x.com",
+        "logo": "ipfs://QmbpeH5MdqYjFvrqNAG6o3AgU9hP2QrBukBc4XvaALiZT5",
+        "image": "ipfs://QmbpeH5MdqYjFvrqNAG6o3AgU9hP2QrBukBc4XvaALiZT5",
+        "version": 2
+    }
 
-        payload = {
+    # inline_datum = {
+    #     "type": "my inline datum",
+    #     "extra": {
+    #         "name": "datum name",
+    #         "description": "datum description"
+    #     }
+    # }
+
+
+    for _ in range(num_outputs):
+        ada = random.randint(2, 3)
+        outputs.append({
             "address": wallet["address"],
             "assets": [
                 {
                     "unit": "lovelace",
                     "quantity": str(ada * 1_000_000)
                 }
-            ]
-        }
+            ],
+            "datum": inline_datum
+        })
 
-        for insert_asset in range(number_of_assets):
-            unit = random.choice(UNITS)
-            asset = random.randint(1, 20)
 
-            payload["assets"].append({
-                "unit": f"{unit}",
-                "quantity": str(asset * 100_000)
-            })
-
-        outputs.append(payload)
-        
 
 
     return {

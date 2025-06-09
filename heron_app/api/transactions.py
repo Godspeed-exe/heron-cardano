@@ -56,6 +56,7 @@ def submit_transaction(tx: TransactionCreate):
 
             metadata_with_int_keys = {int(k): v for k, v in tx.metadata.items()}
 
+
         # Create base transaction record
         tx_record = Transaction(
             id=uuid4(),
@@ -69,9 +70,18 @@ def submit_transaction(tx: TransactionCreate):
         session.flush()  # Get numeric_id
 
         for output_data in tx.outputs:
+
+            inline_datum = None
+            if hasattr(output_data, 'datum') and output_data.datum is not None:
+                if not isinstance(output_data.datum, dict):
+                    raise HTTPException(status_code=400, detail="Datum must be a dictionary")
+                
+                inline_datum = output_data.datum
+
             output = TransactionOutput(
                 transaction_id=tx_record.numeric_id,
                 address=output_data.address,
+                datum=inline_datum,  # Inline datum can be None
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow(),
             )

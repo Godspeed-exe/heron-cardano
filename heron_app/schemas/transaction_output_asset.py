@@ -5,4 +5,4 @@ class TransactionAssetSchema(BaseModel):
     quantity: str  # String to support large values
 
     class Config:
-        orm_mode = True
+        from_attributes = True
