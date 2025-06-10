@@ -5,6 +5,8 @@ from heron_app.db.models.transaction import Transaction
 from heron_app.db.models.wallet import Wallet
 from heron_app.db.models.transaction_output import TransactionOutput
 from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
+from heron_app.db.models.transaction_mint import TransactionMint
+from heron_app.db.models.minting_policies import MintingPolicy  # noqa: F401
 from heron_app.db.database import SessionLocal
 from heron_app.workers.tasks import process_transaction, enqueue_transaction
 from heron_app.utils.registry_loader import get_registry_labels
@@ -98,6 +100,25 @@ def submit_transaction(tx: TransactionCreate):
                 )
                 session.add(asset_row)
 
+
+        # Handle minting if provided
+        if tx.mint:
+            for mint in tx.mint:
+
+                mint_policy = session.query(MintingPolicy).filter(MintingPolicy.policy_id == mint.policy_id).first()
+
+                if mint_policy:
+
+                    mint_record = TransactionMint(
+                        transaction_id=tx_record.numeric_id,
+                        policy_id=mint.policy_id,
+                        asset_name=mint.asset_name,
+                        quantity=mint.quantity,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow(),
+                    )
+                    session.add(mint_record)
+                    
         session.commit()
 
         # Re-fetch transaction with related outputs/assets before session closes

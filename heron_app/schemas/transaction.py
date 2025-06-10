@@ -3,11 +3,13 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 from heron_app.schemas.transaction_output import TransactionOutputSchema
+from heron_app.schemas.transaction_mint import TransactionMint  # ✅ correct
 
 class TransactionCreate(BaseModel):
     wallet_id: UUID
     outputs: List[TransactionOutputSchema]
     metadata: Optional[dict] = None
+    mint: Optional[List[TransactionMint]] = None
 
     class Config:
         from_attributes = True
@@ -23,6 +25,7 @@ class TransactionOut(BaseModel):
     tx_size: Optional[int] = None
     updated_at: datetime
     error_message: Optional[str] = None
+    outputs: List[TransactionOutputSchema]
     outputs: List[TransactionOutputSchema]
 
     class Config:

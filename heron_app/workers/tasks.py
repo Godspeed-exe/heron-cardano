@@ -11,6 +11,8 @@ from heron_app.db.database import SessionLocal
 from heron_app.db.models.transaction import Transaction
 from heron_app.db.models.transaction_output import TransactionOutput
 from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
+from heron_app.db.models.transaction_mint import TransactionMint
+from heron_app.db.models.minting_policies import MintingPolicy  # noqa: F401
 from heron_app.db.models.wallet import Wallet
 
 from blockfrost import BlockFrostApi, ApiUrls
@@ -18,7 +20,7 @@ from pycardano import (
     crypto, ExtendedSigningKey, TransactionInput, TransactionOutput as CardanoTxOutput,
     TransactionBody, TransactionWitnessSet, VerificationKeyWitness, fee, Value, MultiAsset,
     Transaction as CardanoTransaction, Address, BlockFrostChainContext, min_lovelace_post_alonzo,
-    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData
+    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData, PaymentSigningKey
 )
 
 from pycardano.plutus import RawPlutusData, Datum
@@ -244,8 +246,34 @@ def process_transaction(self, transaction_id):
                     val
                 ))
 
+        mints = session.query(TransactionMint).filter(TransactionMint.transaction_id == tx.numeric_id).all()
+
+        if mints:
+            logger.debug(f"Found {len(mints)} mints for transaction {transaction_id}")
+            
+            multiasset = MultiAsset()
+            
+
+            for mint in mints:
+                logger.info(f"Processing mint: {mint.policy_id} {mint.asset_name} {mint.quantity}")
+                
+                policy_id = mint.policy_id
+                asset_name = AssetName(bytes.fromhex(mint.asset_name.encode('utf-8').hex()))
+                quantity = int(mint.quantity)
 
 
+
+
+                if policy_id not in multiasset:
+                    multiasset[ScriptHash.from_primitive(policy_id)] = Asset()
+
+                multiasset[ScriptHash.from_primitive(policy_id)][asset_name] = quantity
+
+                # if f"{policy_id}{mint.asset_name}" not in assets_needed:
+                #     assets_needed[f"{policy_id}{mint.asset_name}"] = 0
+                # assets_needed[f"{policy_id}{mint.asset_name}"] += quantity
+
+            builder.mint = multiasset
 
         logger.debug("Finding assets in available UTXOs to cover transaction outputs...")
         logger.debug(f"Available UTXOs: {len(available_utxos)}")
@@ -371,9 +399,27 @@ def process_transaction(self, transaction_id):
             except Exception as e:
                 logger.warning(f"Metadata error: {e}")
 
+        signers = []
+        signers.append(payment_skey)
+
+        if mints:
+            for mint in mints:
+
+                policy_details = session.query(MintingPolicy).filter(MintingPolicy.policy_id == mint.policy_id).first()
+
+                if policy_details:
+                    fernet = Fernet(os.getenv("WALLET_ENCRYPTION_KEY"))
+                    policy_skey = fernet.decrypt(policy_details.encrypted_policy_skey.encode()).decode()
+                    policy_skey = PaymentSigningKey.from_primitive(policy_skey.encode('utf-8'))
+
+                    logger.info(f"policy_skey: {policy_skey}")
+
+                    if policy_skey not in signers:
+                        signers.append(policy_skey)
+
 
         try:
-            final_tx = builder.build_and_sign([payment_skey], change_address=address)
+            final_tx = builder.build_and_sign(signers, change_address=address)
         except (InsufficientUTxOBalanceException, UTxOSelectionException) as e:
             logger.debug(f"Insufficient UTXO balance for transaction {transaction_id}")
 
