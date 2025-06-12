@@ -20,7 +20,7 @@ from pycardano import (
     crypto, ExtendedSigningKey, TransactionInput, TransactionOutput as CardanoTxOutput,
     TransactionBody, TransactionWitnessSet, VerificationKeyWitness, fee, Value, MultiAsset,
     Transaction as CardanoTransaction, Address, BlockFrostChainContext, min_lovelace_post_alonzo,
-    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData, PaymentSigningKey
+    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData, PaymentSigningKey, SigningKey, VerificationKeyHash, NativeScript, ScriptPubkey, ScriptAll
 )
 
 from pycardano.plutus import RawPlutusData, Datum
@@ -38,6 +38,8 @@ import json
 import traceback
 from datetime import datetime
 import time
+from collections import defaultdict
+
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -250,30 +252,66 @@ def process_transaction(self, transaction_id):
 
         if mints:
             logger.debug(f"Found {len(mints)} mints for transaction {transaction_id}")
-            
-            multiasset = MultiAsset()
-            
+
+            # We'll accumulate quantities per (policy_id, asset_name)
+            policy_ids = {}
 
             for mint in mints:
-                logger.info(f"Processing mint: {mint.policy_id} {mint.asset_name} {mint.quantity}")
+                logger.info(f"Mint request: {mint.policy_id}.{mint.asset_name} × {mint.quantity}")
+
+                if mint.policy_id not in policy_ids:
+                    policy_ids[mint.policy_id] = {}
+
+                if mint.asset_name not in policy_ids[mint.policy_id]:
+                    policy_ids[mint.policy_id][mint.asset_name] = 0
+
+                policy_ids[mint.policy_id][mint.asset_name] += int(mint.quantity)
+
+
+
+            # Build the MultiAsset and the list of native_scripts
+            multi_asset = MultiAsset()
+            native_scripts = []
+
+            logger.info(f"policy_ids: {policy_ids}")
+
+            for policy_id in policy_ids:
+                # fetch & decrypt your signing key for this policy
+                mp = session.query(MintingPolicy).filter_by(policy_id=policy_id).first()
+                if not mp:
+                    raise BadInputsError(f"Unknown policy {policy_id}")
                 
-                policy_id = mint.policy_id
-                asset_name = AssetName(bytes.fromhex(mint.asset_name.encode('utf-8').hex()))
-                quantity = int(mint.quantity)
+                logger.info(f"Processing policy {policy_id}")
+                logger.info(f"Processing assets {policy_ids[policy_id]}")
+
+                # prepare the minting script
+
+                fernet = Fernet(os.getenv("WALLET_ENCRYPTION_KEY"))
+                skey_cbor_hex = fernet.decrypt(mp.encrypted_policy_skey.encode()).decode("utf8")
+                policy_skey = PaymentSigningKey.from_cbor(skey_cbor_hex)
 
 
+                script = ScriptAll([ScriptPubkey(policy_skey.to_verification_key().hash())])
 
 
-                if policy_id not in multiasset:
-                    multiasset[ScriptHash.from_primitive(policy_id)] = Asset()
+                if script not in native_scripts:
+                    native_scripts.append(script)
 
-                multiasset[ScriptHash.from_primitive(policy_id)][asset_name] = quantity
+                # prepare an Asset map under this policy
+                asset_map = Asset()
+                # find all assets under this policy
+                for asset in policy_ids[policy_id]:
 
-                # if f"{policy_id}{mint.asset_name}" not in assets_needed:
-                #     assets_needed[f"{policy_id}{mint.asset_name}"] = 0
-                # assets_needed[f"{policy_id}{mint.asset_name}"] += quantity
+                    name = AssetName(asset.encode("utf-8"))
+                    qty = policy_ids[policy_id][asset]
+                    asset_map[name] = qty
 
-            builder.mint = multiasset
+                multi_asset[ScriptHash.from_primitive(policy_id)] = asset_map
+
+            # finally, attach to the builder
+            builder.mint = multi_asset
+            builder.native_scripts = native_scripts
+
 
         logger.debug("Finding assets in available UTXOs to cover transaction outputs...")
         logger.debug(f"Available UTXOs: {len(available_utxos)}")
@@ -409,8 +447,13 @@ def process_transaction(self, transaction_id):
 
                 if policy_details:
                     fernet = Fernet(os.getenv("WALLET_ENCRYPTION_KEY"))
-                    policy_skey = fernet.decrypt(policy_details.encrypted_policy_skey.encode()).decode()
-                    policy_skey = PaymentSigningKey.from_primitive(policy_skey.encode('utf-8'))
+                    skey_cbor_hex = fernet.decrypt(policy_details.encrypted_policy_skey.encode()).decode("utf8")
+
+                    logger.info(f"Payment signing key: {payment_skey}")
+                    logger.info(f"Payment verification key: {payment_skey.to_verification_key()}")
+                    logger.info(f"skey_cbor_hex: {skey_cbor_hex}")
+
+                    policy_skey = PaymentSigningKey.from_cbor(skey_cbor_hex)
 
                     logger.info(f"policy_skey: {policy_skey}")
 
@@ -418,7 +461,12 @@ def process_transaction(self, transaction_id):
                         signers.append(policy_skey)
 
 
+
         try:
+
+            logger.info(f"signers: {signers}")
+
+
             final_tx = builder.build_and_sign(signers, change_address=address)
         except (InsufficientUTxOBalanceException, UTxOSelectionException) as e:
             logger.debug(f"Insufficient UTXO balance for transaction {transaction_id}")
@@ -456,7 +504,7 @@ def process_transaction(self, transaction_id):
                 logger.debug(f"Added UTXO {max_ada_utxo['tx_hash']} with amounts: {max_ada_utxo['amounts']}")
                 
                 try:
-                    final_tx = builder.build_and_sign([payment_skey], change_address=address)
+                    final_tx = builder.build_and_sign(signers, change_address=address)
                 except (InsufficientUTxOBalanceException, UTxOSelectionException) as e:
                     logger.debug(f"Insufficient UTXO balance for transaction {transaction_id}")
                     raise InsufficientUTxOBalanceException(f"Insufficient UTXO balance for transaction {transaction_id}") from e

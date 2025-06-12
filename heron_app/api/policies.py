@@ -17,12 +17,15 @@ def create_policy(request: CreatePolicyRequest):
 
     policy_id, skey, locking_slot = generate_policy(request.lock_date)
     fernet = Fernet(os.environ["WALLET_ENCRYPTION_KEY"])
+
+    print(f"Generated policy ID: {policy_id}")
+    print(f"Generated secret key: {skey}")
     encrypted_key = fernet.encrypt(skey.encode())
 
     new_policy = MintingPolicy(
         name=request.name,
         policy_id=policy_id,
-        encrypted_policy_skey=encrypted_key.decode(),
+        encrypted_policy_skey=encrypted_key.decode("utf-8"),
         locking_slot=locking_slot
     )
     session.add(new_policy)

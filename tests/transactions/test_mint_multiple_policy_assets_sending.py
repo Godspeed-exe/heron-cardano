@@ -7,9 +7,10 @@ API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 POLICY_ENDPOINT = f"{API_URL}/policies/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 100
-POLICY="63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e5"
-ASSET="0014df104d494c4b"
+NUM_EXECUTIONS = 1
+
+ASSET= "CHARACTER"
+NUM_ASSETS = 3
 
 
 def load_wallet():
@@ -35,49 +36,59 @@ def generate_transaction_payload(wallet):
     if not policies:
         raise Exception("No policies found")
     
-    #select a random wallet
-    policy = random.choice(policies)
-    if not policy:
-        raise Exception("No policy found")
-    
 
     
     outputs = []
 
-    # num_outputs = random.randint(1, 3)
-    # outputs = []
 
-    # for _ in range(num_outputs):
-    #     ada = random.randint(0, 2)
-    #     asset = random.randint(1, 2)
-    #     outputs.append({
-    #         "address": wallet["address"],
-    #         "assets": [
-    #             {
-    #                 "unit": "lovelace",
-    #                 "quantity": str(ada * 1_000_000)
-    #             },
-    #             {
-    #                 "unit": f"{POLICY}{ASSET}",
-    #                 "quantity": str(asset * 1_000_000)
-    #             }
-    #         ]
-    #     })
-
-
-    ASSET= "CHARACTER"
-
-    #i want             "asset_name": f"{ASSET}{i}", to become CHARACTER0001
-
-    policy['policy_id'] = "79b5fc811f6adb4c3005573ee0491e4ecbb87d6ae6406de8520735d3"
 
     mints = []
-    for i in range(1, 3):
-        mints.append({
-            "policy_id": policy["policy_id"],
-            "asset_name": f"{ASSET}{i:04d}",
-            "quantity": str(random.randint(1, 10) * 1_000_000)
-        })
+
+    for _ in range(NUM_ASSETS):
+        policy = random.choice(policies)
+
+        for i in range(1, 5):
+            mints.append({
+                "policy_id": policy["policy_id"],
+                "asset_name": f"{ASSET}{i:04d}",
+                "quantity": str(random.randint(1, 10) * 1_000_000)
+            })
+
+
+    copy_mints = mints.copy()
+
+    outputs = []
+
+    while len(copy_mints) > 0:
+
+        print(f"mints to begin with: {copy_mints}")
+        asset = random.choice(copy_mints)
+        num_outputs = random.randint(1, 3)
+
+
+        for _ in range(num_outputs):
+
+            if int(asset['quantity']) > 1_000_000:
+                asset_quantity = random.randint(1_000_000, int(asset['quantity']))
+
+            outputs.append({
+                "address": wallet["address"],
+                "assets": [
+                    {
+                        "unit": f"{asset['policy_id']}{asset['asset_name'].encode('utf-8').hex()}",
+                        "quantity": str(asset_quantity)
+                    }
+                ]
+            })
+
+        asset['quantity'] = str(int(asset['quantity']) - asset_quantity)
+        
+        for m in copy_mints:
+            if int(m['quantity']) <= 1_000_000:
+                copy_mints.remove(m)
+
+        print(f"Mints left: {copy_mints}")
+
 
 
 

@@ -7,7 +7,7 @@ API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 POLICY_ENDPOINT = f"{API_URL}/policies/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 100
+NUM_EXECUTIONS = 1
 POLICY="63f9a5fc96d4f87026e97af4569975016b50eef092a46859b61898e5"
 ASSET="0014df104d494c4b"
 
@@ -44,38 +44,20 @@ def generate_transaction_payload(wallet):
     
     outputs = []
 
-    # num_outputs = random.randint(1, 3)
-    # outputs = []
-
-    # for _ in range(num_outputs):
-    #     ada = random.randint(0, 2)
-    #     asset = random.randint(1, 2)
-    #     outputs.append({
-    #         "address": wallet["address"],
-    #         "assets": [
-    #             {
-    #                 "unit": "lovelace",
-    #                 "quantity": str(ada * 1_000_000)
-    #             },
-    #             {
-    #                 "unit": f"{POLICY}{ASSET}",
-    #                 "quantity": str(asset * 1_000_000)
-    #             }
-    #         ]
-    #     })
 
 
     ASSET= "CHARACTER"
 
     #i want             "asset_name": f"{ASSET}{i}", to become CHARACTER0001
 
-    policy['policy_id'] = "79b5fc811f6adb4c3005573ee0491e4ecbb87d6ae6406de8520735d3"
+    policy_id = "e68f1cea19752d1292b4be71b7f5d2b3219a15859c028f7454f66cdf"
+    ASSET_NAME = "74544555524f"
 
     mints = []
     for i in range(1, 3):
         mints.append({
-            "policy_id": policy["policy_id"],
-            "asset_name": f"{ASSET}{i:04d}",
+            "policy_id": policy_id,
+            "asset_name": ASSET_NAME,
             "quantity": str(random.randint(1, 10) * 1_000_000)
         })
 

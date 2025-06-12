@@ -107,18 +107,19 @@ def submit_transaction(tx: TransactionCreate):
 
                 mint_policy = session.query(MintingPolicy).filter(MintingPolicy.policy_id == mint.policy_id).first()
 
-                if mint_policy:
+                if not mint_policy:
+                    raise HTTPException(status_code=400, detail="Minting Policy not found on your instance.")
 
-                    mint_record = TransactionMint(
-                        transaction_id=tx_record.numeric_id,
-                        policy_id=mint.policy_id,
-                        asset_name=mint.asset_name,
-                        quantity=mint.quantity,
-                        created_at=datetime.utcnow(),
-                        updated_at=datetime.utcnow(),
-                    )
-                    session.add(mint_record)
-                    
+                mint_record = TransactionMint(
+                    transaction_id=tx_record.numeric_id,
+                    policy_id=mint.policy_id,
+                    asset_name=mint.asset_name,
+                    quantity=mint.quantity,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow(),
+                )
+                session.add(mint_record)
+
         session.commit()
 
         # Re-fetch transaction with related outputs/assets before session closes
