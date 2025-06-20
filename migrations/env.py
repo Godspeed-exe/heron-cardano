@@ -10,7 +10,14 @@ from heron_app.db.models import wallet, transaction, transaction_output, transac
 load_dotenv()
 
 config = context.config
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
+
+SQLALCHEMY_DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:5432/{POSTGRES_DB}"
+
+config.set_main_option("sqlalchemy.url", SQLALCHEMY_DATABASE_URL)
 
 fileConfig(config.config_file_name)
 

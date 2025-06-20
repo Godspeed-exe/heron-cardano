@@ -4,10 +4,14 @@ import requests
 from jinja2 import Template
 
 # Configuration
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/postgres")
-BLOCKFROST_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
-cardano_network = os.getenv("network", "testnet")
-NETWORK = "preprod" if cardano_network == "testnet" else "mainnet"  
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
+
+DB_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:5432/{POSTGRES_DB}"
+
+BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
+network =  BLOCKFROST_API_KEY[:7].lower()
 OURA_TEMPLATE_PATH = "/app/oura/config-template.toml"
 OURA_CONFIG_PATH = "/app/oura/config.toml"
 
@@ -27,10 +31,10 @@ def get_pending_transaction_hash():
 
 
 def fetch_earlier_block_point(tx_hash, steps_back=10):
-    headers = {"project_id": BLOCKFROST_KEY}
+    headers = {"project_id": BLOCKFROST_API_KEY}
 
     # Step 1: Get the block hash for the transaction
-    tx_url = f"https://cardano-{NETWORK}.blockfrost.io/api/v0/txs/{tx_hash}"
+    tx_url = f"https://cardano-{network}.blockfrost.io/api/v0/txs/{tx_hash}"
     tx_response = requests.get(tx_url, headers=headers)
     if tx_response.status_code != 200:
         raise Exception(f"❌ Failed to fetch tx info from Blockfrost: {tx_response.text}")
@@ -39,7 +43,7 @@ def fetch_earlier_block_point(tx_hash, steps_back=10):
     # Step 2: Walk back N blocks
     current_hash = block_hash
     for _ in range(steps_back):
-        block_url = f"https://cardano-{NETWORK}.blockfrost.io/api/v0/blocks/{current_hash}"
+        block_url = f"https://cardano-{network}.blockfrost.io/api/v0/blocks/{current_hash}"
         block_response = requests.get(block_url, headers=headers)
         if block_response.status_code != 200:
             raise Exception(f"❌ Failed to fetch block info: {block_response.text}")
@@ -49,7 +53,7 @@ def fetch_earlier_block_point(tx_hash, steps_back=10):
         current_hash = block_data["previous_block"]
 
     # Step 3: Get slot of final block
-    final_block_url = f"https://cardano-{NETWORK}.blockfrost.io/api/v0/blocks/{current_hash}"
+    final_block_url = f"https://cardano-{network}.blockfrost.io/api/v0/blocks/{current_hash}"
     final_response = requests.get(final_block_url, headers=headers)
     if final_response.status_code != 200:
         raise Exception(f"❌ Failed to fetch final block info: {final_response.text}")
@@ -91,6 +95,6 @@ def main():
 
 if __name__ == "__main__":
     print(f"🔧 DB URL: {DB_URL}")
-    print(f"🌐 Blockfrost Project ID: {BLOCKFROST_KEY}")
-    print(f"🌐 Cardano network: {cardano_network}")
+    print(f"🌐 Blockfrost Project ID: {BLOCKFROST_API_KEY}")
+    print(f"🌐 Cardano network: {network}")
     main()

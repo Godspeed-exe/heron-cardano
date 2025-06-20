@@ -19,6 +19,11 @@ import os
 SLOTS_PER_SECOND = 1  # Preprod is 1 slot/sec
 NETWORK_START = datetime(2020, 7, 29, tzinfo=timezone.utc)  # Shelley start
 
+BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
+network =  BLOCKFROST_API_KEY[:7].lower()
+BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
+
+
 def utc_to_slot(dt: datetime) -> int:
     delta = dt - NETWORK_START
     return int(delta.total_seconds() * SLOTS_PER_SECOND)
@@ -42,11 +47,9 @@ class GenericSubmitError(TransactionSubmitError):
 network = os.getenv('network')
 
 def get_balance(address: str) -> dict:
-    api_key = os.getenv("BLOCKFROST_PROJECT_ID")
-    network = os.getenv("network")
-    base_url = ApiUrls.preprod.value if network == "testnet" else ApiUrls.mainnet.value
 
-    api = BlockFrostApi(project_id=api_key, base_url=base_url)
+
+    api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
 
     try:
         utxos = api.address_utxos(address)

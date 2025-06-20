@@ -53,6 +53,25 @@ logger.propagate = True
 WALLET_UTXO_CACHE = {}
 MAX_FEE = 0
 
+BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
+network =  BLOCKFROST_API_KEY[:7].lower()
+
+if network not in ["mainnet", "preprod", "preview"]:
+    logger.error(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
+    raise ValueError(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
+
+logger.info(f"Using network: {network}")
+
+BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
+
+context = BlockFrostChainContext(
+    project_id=BLOCKFROST_API_KEY,
+    base_url=BASE_URL,
+)
+
+api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
+
+
 def enqueue_transaction(transaction_id):
     session = SessionLocal()
     tx = session.query(Transaction).filter(Transaction.id == transaction_id).first()
@@ -70,9 +89,6 @@ def set_utxos_to_cache(address, utxo_list):
 
 def reload_utxos(address):
      
-    network = os.getenv("network", "mainnet")
-    base_url = ApiUrls.preprod.value if network == "testnet" else ApiUrls.mainnet.value
-    api = BlockFrostApi(project_id=os.getenv("BLOCKFROST_PROJECT_ID"), base_url=base_url)
 
     page = 1
     all_utxos = []
@@ -168,12 +184,6 @@ def process_transaction(self, transaction_id):
         root_key = crypto.bip32.HDWallet.from_mnemonic(mnemonic)
         payment_key = root_key.derive_from_path("m/1852'/1815'/0'/0/0")
         payment_skey = ExtendedSigningKey.from_hdwallet(payment_key)
-
-        network = os.getenv("network", "mainnet")
-        context = BlockFrostChainContext(
-            project_id=os.getenv("BLOCKFROST_PROJECT_ID"),
-            base_url=ApiUrls.preprod.value if network == "testnet" else ApiUrls.mainnet.value,
-        )
 
 
         MAX_FEE = context.protocol_param.min_fee_constant + (context.protocol_param.max_tx_size * context.protocol_param.min_fee_coefficient)

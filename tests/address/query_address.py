@@ -11,11 +11,11 @@ ADDRESS="addr_test1qphe4ktmglgyhwqh42ltf8y2nxxgqvdv6c8tcgp7d637xqwsy7cw3eq0wqtup
 #query address from blockfrost
 
 
-api_key = os.getenv("BLOCKFROST_PROJECT_ID")
-network = os.getenv("network")
-base_url = ApiUrls.preprod.value if network == "testnet" else ApiUrls.mainnet.value
+BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
+network =  BLOCKFROST_API_KEY[:7].lower()
+BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
 
-api = BlockFrostApi(project_id=api_key, base_url=base_url)
+api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
 
 #query utoxs for this address
 

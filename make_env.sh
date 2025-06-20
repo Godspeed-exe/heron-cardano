@@ -6,9 +6,6 @@ read POSTGRES_USER
 echo "Enter your Postgresql password:"
 read POSTGRES_PASSWORD
 
-echo "Which Cardano network do you want to connect to? (testnet/mainnet)"
-read NETWORK
-
 echo "Enter your Blockfrost API key:"
 read BLOCKFROST_PROJECT_ID
 
@@ -17,7 +14,6 @@ read WALLET_ENCRYPTION_KEY
 
 echo "POSTGRES_USER="$POSTGRES_USER >> .env
 echo "POSTGRES_PASSWORD="$POSTGRES_PASSWORD >> .env
-echo "NETWORK="$NETWORK >> .env
 echo "BLOCKFROST_PROJECT_ID="$BLOCKFROST_PROJECT_ID >> .env
 echo "WALLET_ENCRYPTION_KEY="$WALLET_ENCRYPTION_KEY >> .env
 

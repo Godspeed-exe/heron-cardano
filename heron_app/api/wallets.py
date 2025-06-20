@@ -16,13 +16,17 @@ from heron_app.workers.start_wallet_worker import start_worker
 
 router = APIRouter()
 
+BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
+network =  BLOCKFROST_API_KEY[:7].lower()
+
+
 @router.post("/")
 def create_wallet(data: WalletCreate):
     session = SessionLocal()
     try:
-        network = os.getenv('network')
-        base_url = ApiUrls.preprod.value if network == "testnet" else ApiUrls.mainnet.value
-        cardano_network = Network.TESTNET if network == "testnet" else Network.MAINNET
+
+        cardano_network = Network.MAINNET if network == "mainnet" else Network.TESTNET
+        
 
         root_key = crypto.bip32.HDWallet.from_mnemonic(data.mnemonic)
         payment_key = root_key.derive_from_path("m/1852'/1815'/0'/0/0")

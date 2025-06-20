@@ -16,7 +16,7 @@ services:
       - redis
     command: >
       /wait-for-it.sh db:5432 --timeout=60 --strict --
-      uvicorn heron_app.main:app --host 0.0.0.0 --port 8000 --reload
+      sh -c "alembic upgrade head && uvicorn heron_app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   redis:
     image: redis:7-alpine
@@ -50,7 +50,6 @@ services:
       - PYTHONPATH=/app
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - BLOCKFROST_PROJECT_ID=${BLOCKFROST_PROJECT_ID}
-      - network=${network}
     depends_on:
       - db
 
