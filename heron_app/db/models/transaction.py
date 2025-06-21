@@ -11,15 +11,13 @@ class Transaction(Base):
     __tablename__ = "transactions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
-    # ✅ Add this line: autoincrement + server_default + index
     numeric_id = Column(
         Integer,
         Sequence("transaction_numeric_id_seq"),
+        autoincrement=True,
         nullable=False,
         unique=True
     )
-
     wallet_id = Column(UUID(as_uuid=True), ForeignKey("wallets.id"), nullable=False)
     metadata_json = Column(JSON, nullable=True)
     status = Column(String, default="queued")

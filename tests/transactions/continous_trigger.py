@@ -2,12 +2,13 @@ import requests
 import random
 import time
 from uuid import UUID
+import sys
+
 
 API_URL = "http://localhost:8001"
 WALLETS_ENDPOINT = f"{API_URL}/wallets/"
 TRANSACTIONS_ENDPOINT = f"{API_URL}/transactions/"
-NUM_EXECUTIONS = 1000
-
+NUM_EXECUTIONS = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 def load_wallet():
     response = requests.get(WALLETS_ENDPOINT)
@@ -24,11 +25,11 @@ def load_wallet():
     return wallet 
 
 def generate_transaction_payload(wallet):
-    num_outputs = random.randint(1, 30)
+    num_outputs = random.randint(1, 5)
     outputs = []
 
     for _ in range(num_outputs):
-        ada = random.randint(2, 10)
+        ada = random.randint(2, 5)
         outputs.append({
             "address": wallet["address"],
             "assets": [
@@ -40,16 +41,15 @@ def generate_transaction_payload(wallet):
         })
 
 
-    metadata = {
-        674: {
-            "msg": "Hello Cardano!"
-        }
-        }
+    # metadata = {
+    #     674: {
+    #         "msg": "Hello Cardano!"
+    #     }
+    #     }
 
     return {
         "wallet_id": wallet["id"],
-        "outputs": outputs,
-        "metadata": metadata
+        "outputs": outputs
     }
 
 def main():

@@ -37,13 +37,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    depends_on:
+      - redis
 
   init_oura_config:
     build: .
     container_name: init_oura_config
     command: >
       /wait-for-it.sh db:5432 --timeout=60 --strict --
-      sh -c "alembic upgrade head && python oura/prepare_oura.py"
+      sh -c "python oura/prepare_oura.py"
     volumes:
       - .:/app
     environment:
@@ -52,6 +54,7 @@ services:
       - BLOCKFROST_PROJECT_ID=${BLOCKFROST_PROJECT_ID}
     depends_on:
       - db
+      - api
 
   worker:
     build: .
@@ -61,8 +64,7 @@ services:
 
     command: >
       /wait-for-it.sh db:5432 --timeout=60 --strict --
-      sh -c "alembic upgrade head &&
-         celery -A heron_app.workers.worker worker -Q default --loglevel=info"
+      sh -c "celery -A heron_app.workers.worker worker -Q default --loglevel=info"
             
     volumes:
       - .:/app
@@ -71,6 +73,7 @@ services:
     depends_on:
       - db
       - redis
+      - oura
   oura:
     image: ghcr.io/txpipe/oura:latest
     platform: linux/amd64

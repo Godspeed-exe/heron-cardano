@@ -23,6 +23,7 @@ fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 
+
 def run_migrations_offline():
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -46,4 +47,6 @@ def run_migrations_online():
 if context.is_offline_mode():
     run_migrations_offline()
 else:
+    print("TABLES SEEN BY ALEMBIC:", Base.metadata.tables.keys())
+
     run_migrations_online()
