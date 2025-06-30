@@ -6,7 +6,7 @@ Heron is an enterprise grade API which can quickly be deployed and allows entiti
 ## Requirements
 - simple virtual machine with Docker
 - a Blockfrost API key (https://blockfrost.io/dashboard)
-- at least 1 CIP39 mnemonic (can also be generated using the API)
+- at least 1 CIP39 mnemonic
 
 ## Functions
 
@@ -18,22 +18,51 @@ Heron is an enterprise grade API which can quickly be deployed and allows entiti
     + ✅ single recipient
     + ✅ multiple recipients (only ADA)
     + ✅ multiple recipients (native assets)
-    + ⏳ attaching metadata
-    + ⏳ minting assets
+    + ✅ attaching metadata
+    + ✅ minting assets
 
 ## Installation
 
-Since **Heron** does not include a full node, system requirements are fairly low. **Heron** relies on Blockfrost to query Cardano blockchain data.
+Since **Heron** does not include a full node, system requirements are fairly low. **Heron** relies on [Blockfrost](https://blockfrost.io/dashboard) to query Cardano blockchain data.
 
-Go to https://blockfrost.io/dashboard , create an account and obtain your API key. This will be needed for successfully starting the Docker containers.
+Obtain a free API account from [Blockfrost](https://blockfrost.io/dashboard), select the network that you want to work with and obtain your API key. This will be needed for successfully starting the Docker containers.
 
-
+### Clone the Heron code from this Github repository.
 ```` 
-git clone https://github.com/Godspeed-exe/heron.git
-cd heron
-chmod +x make_env.sh && ./make_env.sh 
+git clone https://github.com/Godspeed-exe/heron-cardano.git
+```` 
+### Move into the folder.
+```` 
+cd heron-cardano
+```` 
+### Run this script to initiate all required environment variables.
+```` 
+./make_env.sh 
+```` 
+
+### Launch the docker containers
+```` 
 docker-compose up --build -d
 ````
+
+## Troubleshoot
+
+### These containers should be up and running
+Check their logs with 'docker logs -f xxxxx'
+````
+- oura_worker
+- heron_worker
+- oura
+- heron_api
+- heron_db
+- redis
+````
+
+
+
+## Getting started
+
+
 
 
 ## Documentation
