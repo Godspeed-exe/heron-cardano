@@ -533,6 +533,10 @@ def process_transaction(self, transaction_id):
         logger.info(f"final_tx: {final_tx}")
 
         try:
+
+            if network == "mainnet":
+                time.sleep(0.4)  # Delay for mainnet to avoid rate limiting issues
+
             tx_hash = context.submit_tx(final_tx.to_cbor())
             logger.info(f"Transaction {tx.id} submitted successfully: {tx_hash}")
 

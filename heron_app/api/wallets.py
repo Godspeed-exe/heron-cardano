@@ -115,3 +115,28 @@ def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to 
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
+
+@router.post(
+    "/generate",
+    summary="Generate mnemonic",
+    description="Generates a 24-word BIP-39 mnemonic compatible with Cardano wallets.",
+    tags=["Wallets"],
+    responses={
+        200: {
+            "description": "A new 24-word mnemonic",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "mnemonic": "sword lottery inch lens smart remember february ..."
+                    }
+                }
+            }
+        }
+    }
+)
+def generate_mnemonic():
+    try:
+        mnemonic = crypto.bip32.HDWallet.generate_mnemonic()
+        return {"mnemonic": mnemonic}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to generate mnemonic: {str(e)}")
