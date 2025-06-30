@@ -6,9 +6,8 @@ from jinja2 import Template
 # Configuration
 POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
 POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
-POSTGRES_DB = os.getenv("POSTGRES_DB", "postgres")
 
-DB_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:5432/{POSTGRES_DB}"
+DB_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@db:5432/heron_db"
 
 BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
 network =  BLOCKFROST_API_KEY[:7].lower()
