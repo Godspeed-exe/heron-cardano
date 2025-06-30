@@ -86,6 +86,8 @@ services:
     restart: unless-stopped
     depends_on:
       - init_oura_config
+    ports:
+      - "9186:9186"
     dns:
       - 8.8.8.8
 

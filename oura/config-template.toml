@@ -32,6 +32,10 @@ enabled = true
 [log]
 level = "debug"
 
+[metrics]
+address = "0.0.0.0:9186"
+endpoint = "/metrics"
+
 [cursor]
 type = "File"
 path = "/app/oura/cursor"
