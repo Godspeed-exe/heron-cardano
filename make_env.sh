@@ -1,4 +1,4 @@
-rm .env
+rm -f .env
 touch .env
 
 echo "Enter your Postgresql username:"

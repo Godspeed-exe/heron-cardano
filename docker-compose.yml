@@ -32,7 +32,7 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: heron_db
     ports:
       - "5432:5432"
     volumes:
@@ -50,7 +50,7 @@ services:
       - .:/app
     environment:
       - PYTHONPATH=/app
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/heron_db
       - BLOCKFROST_PROJECT_ID=${BLOCKFROST_PROJECT_ID}
     depends_on:
       - db
