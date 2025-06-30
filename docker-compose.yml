@@ -100,12 +100,5 @@ services:
     environment:
       - PYTHONPATH=/app
 
-  debug:
-    image: alpine:latest
-    container_name: debug
-    command: sh
-    stdin_open: true
-    tty: true
-
 volumes:
   postgres_data:
