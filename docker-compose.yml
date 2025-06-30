@@ -15,8 +15,9 @@ services:
       - db
       - redis
     command: >
-      /wait-for-it.sh db:5432 --timeout=60 --strict --
-      sh -c "alembic upgrade head && uvicorn heron_app.main:app --host 0.0.0.0 --port 8000 --reload"
+      "sh -c "/wait-for-it.sh db:5432 --timeout=60 --strict --
+      && alembic upgrade head
+      && uvicorn heron_app.main:app --host 0.0.0.0 --port 8000 --reload"
 
   redis:
     image: redis:7-alpine
@@ -74,6 +75,7 @@ services:
       - db
       - redis
       - oura
+      - api
   oura:
     image: ghcr.io/txpipe/oura:latest
     platform: linux/amd64
