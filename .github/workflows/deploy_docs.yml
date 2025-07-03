@@ -3,7 +3,7 @@ name: Generate & Deploy API Docs
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-deploy:
@@ -13,8 +13,8 @@ jobs:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: main
-          persist-credentials: false  # we'll use token auth manually
+          ref: master
+          persist-credentials: false
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -44,8 +44,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git checkout main
-          git pull origin main
+          git checkout master
+          git pull origin master
           git add docs/
           git diff --cached --quiet || git commit -m "Update OpenAPI docs"
-          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git main
+          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git master
