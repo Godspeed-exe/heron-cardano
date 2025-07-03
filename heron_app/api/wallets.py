@@ -23,7 +23,6 @@ network =  BLOCKFROST_API_KEY[:7].lower()
 @router.post("/",
     summary="Load a new wallet",
     description="Loads and stores a new Cardano wallet from a 24-word mnemonic. The mnemonic is encrypted and the wallet address is derived from the root key.",
-    tags=["Wallets"],
     responses={
         200: {
             "description": "Wallet created successfully",
@@ -108,7 +107,6 @@ def create_wallet(data: WalletCreate):
 @router.get("/",
     summary="List all available wallets",
     description="Shows a list of all wallets stored in the database, including their IDs, names, addresses, and creation dates.",
-    tags=["Wallets"],
     responses={
         200: {
             "description": "List of wallets retrieved successfully",
@@ -150,7 +148,6 @@ def list_wallets():
 @router.get("/{wallet_id}",
     summary="Get wallet details",
     description="Retrieves detailed information about a specific wallet by its ID, including its name, address, balance, and creation date.",
-    tags=["Wallets"],
     responses={
         200: {
             "description": "Wallet details retrieved successfully",
@@ -235,7 +232,6 @@ def get_wallet(wallet_id: str):
                 status_code=204,
                 summary="Delete a wallet",
                 description="Deletes a wallet from the database by its ID. This action is irreversible and will remove all associated data.",
-                tags=["Wallets"],
                 responses={
                     204: {"description": "Wallet deleted successfully"},
                     404: {"description": "Wallet not found"},
@@ -273,7 +269,6 @@ def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to 
     "/generate",
     summary="Generate mnemonic",
     description="Generates a new random 24-word BIP-39 mnemonic.",
-    tags=["Wallets"],
     responses={
         200: {
             "description": "A new 24-word mnemonic",

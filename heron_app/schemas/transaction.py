@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 from heron_app.schemas.transaction_output import TransactionOutputSchema
-from heron_app.schemas.transaction_mint import TransactionMint  # ✅ correct
+from heron_app.schemas.transaction_mint import TransactionMint
 
 class TransactionCreate(BaseModel):
     wallet_id: UUID

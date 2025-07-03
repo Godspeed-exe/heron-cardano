@@ -9,7 +9,47 @@ from heron_app.utils.cardano import generate_policy
 
 router = APIRouter()
 
-@router.post("/", response_model=PolicyResponse)
+@router.post("/", 
+            summary="Create a new minting policy",
+            description="Creates a new minting policy with a specified name and lock date. The policy ID and secret key are generated and stored securely.",
+            status_code=201,
+            responses={
+                201: {
+                    "description": "Policy created successfully",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "name": "My Minting Policy",
+                                "policy_id": "policy1xyz...",
+                                "locking_slot": 123456,
+                                "created_at": "2023-10-01T12:00:00Z"
+                            }
+                        }
+                    }
+                },
+                400: {
+                    "description": "Bad request, policy name already exists",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Policy name already exists"
+                            }
+                        }
+                    }
+                },
+                500: {
+                    "description": "Internal server error",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "An unexpected error occurred"
+                            }
+                        }
+                    }
+                }
+            },
+            response_model=PolicyResponse
+        )
 def create_policy(request: CreatePolicyRequest):
     session = SessionLocal()
     if session.query(MintingPolicy).filter_by(name=request.name).first():
@@ -39,7 +79,49 @@ def create_policy(request: CreatePolicyRequest):
         created_at=new_policy.created_at
     )
 
-@router.get("/", response_model=list[PolicyResponse])
+@router.get("/", 
+            summary="List all minting policies",
+            description="Retrieves a list of all minting policies stored in the database, including their names, IDs, locking slots, and creation dates.",
+            status_code=200,
+            responses={
+                200: {
+                    "description": "List of policies retrieved successfully",
+                    "content": {
+                        "application/json": {
+                            "example": [
+                                {
+                                    "name": "My Minting Policy",
+                                    "policy_id": "policy1xyz...",
+                                    "locking_slot": 123456,
+                                    "created_at": "2023-10-01T12:00:00Z"
+                                }
+                            ]
+                        }
+                    }
+                },
+                422: {
+                    "description": "Validation error, e.g., invalid policy ID format",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Validation error message"
+                            }
+                        }
+                    }
+                },
+                500: {
+                    "description": "Internal server error",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "An unexpected error occurred"
+                            }
+                        }
+                    }
+                }
+            },
+            response_model=list[PolicyResponse]
+            )
 def list_policies():
     session = SessionLocal()
     return [

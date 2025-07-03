@@ -19,7 +19,78 @@ router = APIRouter()
 
 
 
-@router.post("/", response_model=TransactionOut)
+@router.post("/",
+                summary="Submit a new transaction",
+                description="Submits a new transaction to the Heron API. The transaction includes metadata, outputs, and optional minting information. The transaction is queued for processing.",
+                responses={
+                    200: {
+                        "description": "Transaction submitted successfully",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "id": "uuid",
+                                    "wallet_id": "uuid",
+                                    "metadata_json": {"1": "value"},
+                                    "status": "queued",
+                                    "created_at": "2023-10-01T00:00:00Z",
+                                    "updated_at": "2023-10-01T00:00:00Z",
+                                    "outputs": [
+                                        {
+                                            "address": "addr_test1...",
+                                            "datum": None,
+                                            "assets": [
+                                                {"unit": "asset1", "quantity": 1000}
+                                            ]
+                                        }
+                                    ],
+                                    "mint": []
+                                }
+                            }
+                        }
+                    },  
+                    400: {
+                        "description": "Bad request",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Error message"
+                                }
+                            }
+                        }
+                    },
+                    404: {
+                        "description": "Wallet not found",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Wallet not found"
+                                }
+                            }
+                        }
+                    },
+                    422: {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Validation error message"
+                                }
+                            }
+                        }
+                    },
+                    500: {
+                        "description": "Internal server error",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "detail": "Error message"
+                                }
+                            }
+                        }
+                    }
+                },
+                response_model=TransactionOut
+              )
 def submit_transaction(tx: TransactionCreate):
     session = SessionLocal()
     try:
@@ -143,7 +214,68 @@ def submit_transaction(tx: TransactionCreate):
         session.close()
 
 
-@router.get("/{transaction_id}", response_model=TransactionOut)
+@router.get("/{transaction_id}", 
+            summary="Get transaction details",
+            description="Retrieves detailed information about a specific transaction by its ID, including its outputs and associated assets.",
+            responses={
+                200: {
+                    "description": "Transaction details retrieved successfully",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "id": "uuid",
+                                "wallet_id": "uuid",
+                                "metadata_json": {"1": "value"},
+                                "status": "queued",
+                                "created_at": "2023-10-01T00:00:00Z",
+                                "updated_at": "2023-10-01T00:00:00Z",
+                                "outputs": [
+                                    {
+                                        "address": "addr_test1...",
+                                        "datum": None,
+                                        "assets": [
+                                            {"unit": "asset1", "quantity": 1000}
+                                        ]
+                                    }
+                                ],
+                                "mint": []
+                            }
+                        }
+                    }
+                },
+                404: {
+                    "description": "Transaction not found",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Transaction not found"
+                            }
+                        }
+                    }
+                },
+                422: {
+                    "description": "Validation error",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Validation error message"
+                            }
+                        }
+                    }
+                },                
+                500: {
+                    "description": "Internal server error",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "error message"
+                            }
+                        }
+                    }
+                }
+            },
+            response_model=TransactionOut
+            )
 def get_transaction(transaction_id: str = Path(..., description="UUID of the transaction")):
     session = SessionLocal()
     try:
