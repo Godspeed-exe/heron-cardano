@@ -3,14 +3,18 @@ name: Generate & Deploy API Docs
 on:
   push:
     branches:
-      - main  # or the branch you want
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
+        with:
+          ref: main
+          persist-credentials: false  # we'll use token auth manually
 
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
@@ -20,20 +24,28 @@ jobs:
       - name: 🐳 Start FastAPI in Docker
         run: docker compose up -d
 
-      - name: 💤 Wait for API to be ready
+      - name: 💤 Wait for FastAPI to be ready
         run: |
+          echo "Waiting for FastAPI..."
           sleep 10
-          curl --retry 5 --retry-connrefused http://localhost:8001/openapi.json
+          curl --retry 10 --retry-delay 5 --retry-connrefused http://localhost:8001/openapi.json
 
-      - name: Regenerate OpenAPI docs
+      - name: 📄 Generate OpenAPI docs
         run: |
           pip install -r requirements.txt
           python scripts/generate_docs.py
 
-      - name: Commit updated docs
+      - name: ⚙️ Configure Git for commit
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: 📤 Commit & push updated docs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git checkout main
+          git pull origin main
           git add docs/
           git diff --cached --quiet || git commit -m "Update OpenAPI docs"
-          git push
+          git push https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git main
