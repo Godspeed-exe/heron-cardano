@@ -275,7 +275,7 @@ def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to 
             "content": {
                 "application/json": {
                     "example": {
-                        "mnemonic": "sword lottery inch lens smart remember february ..."
+                        "mnemonic": "sword lottery inch lens smart remember february sauce ..."
                     }
                 }
             }
