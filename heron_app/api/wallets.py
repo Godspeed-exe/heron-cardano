@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Path  # type: ignore
-from uuid import uuid4
+from uuid import uuid4, UUID
 from datetime import datetime
 import os
 from cryptography.fernet import Fernet
@@ -20,7 +20,44 @@ BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
 network =  BLOCKFROST_API_KEY[:7].lower()
 
 
-@router.post("/")
+@router.post("/",
+    summary="Load a new wallet",
+    description="Loads and stores a new Cardano wallet from a 24-word mnemonic. The mnemonic is encrypted and the wallet address is derived from the root key.",
+    tags=["Wallets"],
+    responses={
+        200: {
+            "description": "Wallet created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "address": "addr1q..."
+                    }
+                }
+            }
+        },
+        400: {
+            "description": "Bad request, e.g., duplicate wallet address",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "A wallet with this address already exists."
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "An unexpected error occurred"
+                    }
+                }
+            }
+        }
+    }
+    )
 def create_wallet(data: WalletCreate):
     session = SessionLocal()
     try:
@@ -68,7 +105,38 @@ def create_wallet(data: WalletCreate):
     finally:
         session.close()
 
-@router.get("/")
+@router.get("/",
+    summary="List all available wallets",
+    description="Shows a list of all wallets stored in the database, including their IDs, names, addresses, and creation dates.",
+    tags=["Wallets"],
+    responses={
+        200: {
+            "description": "List of wallets retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": [
+                        {
+                            "id": "123e4567-e89b-12d3-a456-426614174000",
+                            "name": "My Wallet",
+                            "address": "addr1q...",
+                            "created_at": "2023-10-01T12:00:00Z"
+                        }
+                    ]
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "An unexpected error occurred"
+                    }
+                }
+            }
+        }
+    }
+    )
 def list_wallets():
     session = SessionLocal()
     try:
@@ -79,10 +147,70 @@ def list_wallets():
     finally:
         session.close()
 
-@router.get("/{wallet_id}")
+@router.get("/{wallet_id}",
+    summary="Get wallet details",
+    description="Retrieves detailed information about a specific wallet by its ID, including its name, address, balance, and creation date.",
+    tags=["Wallets"],
+    responses={
+        200: {
+            "description": "Wallet details retrieved successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": "123e4567-e89b-12d3-a456-426614174000",
+                        "name": "My Wallet",
+                        "address": "addr1q...",
+                        "balance": 1000.0,
+                        "created_at": "2023-10-01T12:00:00Z"
+                    }
+                }
+            }
+        },
+        404: {
+            "description": "Wallet not found",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Wallet not found"
+                    }
+                }
+            }
+        },
+        422: {
+            "description": "Validation error, e.g., invalid wallet ID format",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Invalid wallet ID format"
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "An unexpected error occurred"
+                    }
+                }
+            }
+        }
+    }
+    )
 def get_wallet(wallet_id: str):
     session = SessionLocal()
     try:
+
+        if not wallet_id or len(wallet_id) != 36:
+            raise HTTPException(status_code=422, detail="Invalid wallet ID format")
+        # Validate UUID format
+        try:
+            UUID(wallet_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid wallet ID format")
+        
+
         wallet = session.query(Wallet).filter(Wallet.id == wallet_id).first()
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -95,13 +223,38 @@ def get_wallet(wallet_id: str):
             "balance": balance,
             "created_at": wallet.created_at
         }
+    except HTTPException:
+        raise  # re-raise cleanly
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()
 
-@router.delete("/wallets/{wallet_id}", status_code=204)
+@router.delete("/wallets/{wallet_id}", 
+                status_code=204,
+                summary="Delete a wallet",
+                description="Deletes a wallet from the database by its ID. This action is irreversible and will remove all associated data.",
+                tags=["Wallets"],
+                responses={
+                    204: {"description": "Wallet deleted successfully"},
+                    404: {"description": "Wallet not found"},
+                    422: {"description": "Validation error, e.g., invalid wallet ID format"},
+                    500: {"description": "Internal server error"}
+                }
+                )
 def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to delete")):
     session = SessionLocal()
     try:
+
+        if not wallet_id or len(wallet_id) != 36:
+            raise HTTPException(status_code=422, detail="Invalid wallet ID format")
+        # Validate UUID format
+        try:
+            UUID(wallet_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid wallet ID format")
+        
         wallet = session.query(Wallet).filter(Wallet.id == wallet_id).first()
         if not wallet:
             raise HTTPException(status_code=404, detail="Wallet not found")
@@ -119,7 +272,7 @@ def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to 
 @router.post(
     "/generate",
     summary="Generate mnemonic",
-    description="Generates a 24-word BIP-39 mnemonic compatible with Cardano wallets.",
+    description="Generates a new random 24-word BIP-39 mnemonic.",
     tags=["Wallets"],
     responses={
         200: {
@@ -128,6 +281,16 @@ def delete_wallet(wallet_id: str = Path(..., description="UUID of the wallet to 
                 "application/json": {
                     "example": {
                         "mnemonic": "sword lottery inch lens smart remember february ..."
+                    }
+                }
+            }
+        },
+        500: {
+            "description": "Internal server error",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Failed to generate mnemonic: <error message>"
                     }
                 }
             }

@@ -4,7 +4,7 @@
 Heron is an enterprise grade API which can quickly be deployed and allows entities to easily interact with the Cardano blockchains, without the need of learning how to work with a blockchain.
 
 ## Requirements
-- simple virtual machine with Docker
+- simple virtual machine with Docker with Linux or WSL
 - a Blockfrost API key (https://blockfrost.io/dashboard)
 - at least 1 CIP39 mnemonic
 
@@ -62,9 +62,18 @@ Check their logs with 'docker logs -f xxxxx'
 
 ## Getting started
 
+Before being able to process transactions Heron will need to have at least 1 wallet. To load a wallet you'll need a BIP39 mnemonic (24 word recovery phrase). Heron will safely store this and use it to sign transactions before broadcasting them to the network.
+
+This mnemonic can also be opened in Cardano wallets like Lace, Eternl, VESPR.
+
+You can:
+- re-use an existing mnemonic
+- generate a new mnemnoic through Heron's API (/wallets/generate)
+
+
 
 
 
 ## Documentation
 
-After completing installation you can access the documentation on http://localhost:8001/docs 
+After completing installation you can access the documentation on http://heron_api_here:8001/docs 
