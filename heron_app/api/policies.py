@@ -37,6 +37,16 @@ router = APIRouter()
                         }
                     }
                 },
+                422: {
+                    "description": "Validation error, e.g., invalid lock date format",
+                    "content": {
+                        "application/json": {
+                            "example": {
+                                "detail": "Validation error message"
+                            }
+                        }
+                    }
+                },
                 500: {
                     "description": "Internal server error",
                     "content": {
