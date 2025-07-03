@@ -25,7 +25,7 @@ jobs:
         run: cp ci.env .env
 
       - name: 🐳 Start FastAPI in Docker
-        run: docker compose up -d heron_api
+        run: docker compose up -d api
 
       - name: 💤 Wait for FastAPI to be ready
         run: |
