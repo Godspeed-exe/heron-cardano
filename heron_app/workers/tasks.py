@@ -64,12 +64,7 @@ logger.info(f"Using network: {network}")
 
 BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
 
-context = BlockFrostChainContext(
-    project_id=BLOCKFROST_API_KEY,
-    base_url=BASE_URL,
-)
 
-api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
 
 
 def enqueue_transaction(transaction_id):
@@ -89,6 +84,14 @@ def set_utxos_to_cache(address, utxo_list):
 
 def reload_utxos(address):
      
+
+    context = BlockFrostChainContext(
+        project_id=BLOCKFROST_API_KEY,
+        base_url=BASE_URL,
+    )
+
+    api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
+
 
     page = 1
     all_utxos = []
@@ -153,6 +156,14 @@ def dict_to_datum(obj: dict) -> RawPlutusData:
 @celery.task(name="heron_app.workers.tasks.process_transaction", bind=True)
 def process_transaction(self, transaction_id):
 
+
+    context = BlockFrostChainContext(
+        project_id=BLOCKFROST_API_KEY,
+        base_url=BASE_URL,
+    )
+
+    api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
+    
     logger.info(f"Processing transaction {transaction_id}")
 
     session = SessionLocal()
