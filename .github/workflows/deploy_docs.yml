@@ -21,6 +21,9 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: 🧪 Copy CI env file
+        run: cp ci.env .env
+
       - name: 🐳 Start FastAPI in Docker
         run: docker compose up -d
 
