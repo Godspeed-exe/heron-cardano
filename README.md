@@ -3,14 +3,15 @@
 
 Heron is an enterprise grade API which can quickly be deployed and allows entities to easily interact with the Cardano blockchains, without the need of learning how to work with a blockchain.
 
+## Documentation
+The API documentation can be found at [https://godspeed-exe.github.io/heron-cardano](https://godspeed-exe.github.io/heron-cardano). This will also be available after deploying Heron on your infrastructure on [http://heron_api_here:8001/docs](http://heron_api_here:8001/docs)
+
 ## Requirements
 - simple virtual machine with Docker with Linux or WSL
 - a Blockfrost API key (https://blockfrost.io/dashboard)
 - at least 1 CIP39 mnemonic
 
 ## Functions
-
-
 + ✅ load a Cardano wallet
 + ✅ query wallet balance
     + ✅ currently only in Single Address Mode (m/1852'/1815'/0'/0/0)
@@ -70,10 +71,3 @@ You can:
 - re-use an existing mnemonic
 - generate a new mnemnoic through Heron's API (/wallets/generate)
 
-
-
-
-
-## Documentation
-
-After completing installation you can access the documentation on http://heron_api_here:8001/docs 
