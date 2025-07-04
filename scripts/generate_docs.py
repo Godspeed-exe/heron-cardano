@@ -20,7 +20,7 @@ with open("docs/index.html", "w") as f:
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
     <script>
       window.onload = () => {
-        SwaggerUIBundle({ url: "openapi.json", dom_id: "#swagger-ui" });
+        SwaggerUIBundle({ url: "openapi.json", dom_id: "#swagger-ui",  tryItOutEnabled: false });
       };
     </script>
   </body>
