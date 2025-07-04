@@ -14,13 +14,19 @@ with open("docs/index.html", "w") as f:
   <head>
     <title>Heron API Docs</title>
     <link href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" rel="stylesheet" />
+            
+    <style>
+      .try-out, .execute-wrapper, .btn.try-out__btn {
+        display: none !important;
+      }
+    </style>
   </head>
   <body>
     <div id="swagger-ui"></div>
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
     <script>
       window.onload = () => {
-        SwaggerUIBundle({ url: "openapi.json", dom_id: "#swagger-ui",  tryItOutEnabled: false });
+        SwaggerUIBundle({ url: "openapi.json", dom_id: "#swagger-ui",  supportedSubmitMethods: [] });
       };
     </script>
   </body>
