@@ -485,7 +485,7 @@ def process_transaction(self, transaction_id):
 
         try:
 
-            logger.info(f"signers: {signers}")
+            logger.debug(f"signers: {signers}")
 
 
             final_tx = builder.build_and_sign(signers, change_address=address)
