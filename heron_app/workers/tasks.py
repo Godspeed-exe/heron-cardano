@@ -536,12 +536,12 @@ def process_transaction(self, transaction_id):
         final_body = final_tx.transaction_body
 
 
-        logger.info(f"Final transaction body: {final_body}")    
+        logger.debug(f"Final transaction body: {final_body}")    
 
-        logger.info(f"Data hash: {final_body.script_data_hash}")
+        logger.debug(f"Data hash: {final_body.script_data_hash}")
 
     
-        logger.info(f"final_tx: {final_tx}")
+        logger.debug(f"final_tx: {final_tx}")
 
         try:
 
