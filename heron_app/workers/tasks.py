@@ -56,7 +56,7 @@ MAX_FEE = 0
 BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
 network =  BLOCKFROST_API_KEY[:7].lower()
 
-if network not in ["mainnet", "preprod", "preview"]:
+if network not in ["mainnet", "preprod", "preview", "custom"]:
     logger.error(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
     raise ValueError(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
 
