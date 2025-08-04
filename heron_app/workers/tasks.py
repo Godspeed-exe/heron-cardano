@@ -57,14 +57,14 @@ BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
 network =  BLOCKFROST_API_KEY[:7].lower()
 
 if network not in ["mainnet", "preprod", "preview", "custom"]:
-    if network not in ["mainnet", "preprod", "preview"]:
-        logger.error(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
-        raise ValueError(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', or 'preview'.")
-    if network == "custom":
-        logger.info("Using custom network configuration.")
-        if os.getenv("CUSTOM_BLOCKFROST_API_URL") is None:
-            logger.error("CUSTOM_BLOCKFROST_API_URL is not set for custom network.")
-            raise ValueError("CUSTOM_BLOCKFROST_API_URL must be set for custom network.")
+    logger.error(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'.")
+    raise ValueError(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'.")
+
+if network == "custom":
+    logger.info("Using custom network configuration.")
+    if os.getenv("CUSTOM_BLOCKFROST_API_URL") is None:
+        logger.error("CUSTOM_BLOCKFROST_API_URL is not set for custom network.")
+        raise ValueError("CUSTOM_BLOCKFROST_API_URL must be set for custom network.")
 
 
 logger.info(f"Using network: {network}")
