@@ -62,7 +62,13 @@ if network not in ["mainnet", "preprod", "preview"]:
 
 logger.info(f"Using network: {network}")
 
-BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
+network_map = {
+    "preprod": ApiUrls.preprod.value,
+    "preview": ApiUrls.preview.value,
+    "mainnet": ApiUrls.mainnet.value,
+}
+
+BASE_URL = network_map.get(network, os.getenv("CUSTOM_BLOCKFROST_API_URL"))
 
 
 

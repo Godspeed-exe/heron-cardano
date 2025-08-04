@@ -21,7 +21,14 @@ NETWORK_START = datetime(2020, 7, 29, tzinfo=timezone.utc)  # Shelley start
 
 BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
 network =  BLOCKFROST_API_KEY[:7].lower()
-BASE_URL = ApiUrls.preprod.value if network == "preprod" else ApiUrls.preview.value if network == "preview" else ApiUrls.mainnet.value
+
+network_map = {
+    "preprod": ApiUrls.preprod.value,
+    "preview": ApiUrls.preview.value,
+    "mainnet": ApiUrls.mainnet.value,
+}
+
+BASE_URL = network_map.get(network, os.getenv("CUSTOM_BLOCKFROST_API_URL"))
 
 
 def utc_to_slot(dt: datetime) -> int:
