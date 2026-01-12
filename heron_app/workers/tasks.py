@@ -1,10 +1,53 @@
 import logging
-from celery.utils.log import get_task_logger
+import os
+import json
+import traceback
+import time
+from datetime import datetime
+from collections import defaultdict
+from typing import Any, Dict, List, Union, Mapping, Optional
 
-# Suppress overly verbose logs
-logging.getLogger("tenacity").setLevel(logging.ERROR)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("PyCardano").setLevel(logging.ERROR)
+from celery.utils.log import get_task_logger
+from blockfrost import BlockFrostApi, ApiError, ApiUrls
+from cryptography.fernet import Fernet
+from pycardano import (
+    crypto,
+    ExtendedSigningKey,
+    TransactionInput,
+    TransactionOutput as CardanoTxOutput,
+    TransactionBody,
+    TransactionWitnessSet,
+    VerificationKeyWitness,
+    fee,
+    Value,
+    MultiAsset,
+    Transaction as CardanoTransaction,
+    Address,
+    BlockFrostChainContext,
+    min_lovelace_post_alonzo,
+    Metadata,
+    AlonzoMetadata,
+    AuxiliaryData,
+    AssetName,
+    ScriptHash,
+    Asset,
+    TransactionBuilder,
+    UTxO,
+    datum_hash,
+    PlutusData,
+    PaymentSigningKey,
+    SigningKey,
+    VerificationKeyHash,
+    NativeScript,
+    ScriptPubkey,
+    ScriptAll,
+)
+from pycardano.plutus import RawPlutusData, Datum
+from pycardano.exception import (
+    TransactionFailedException,
+    InsufficientUTxOBalanceException,
+    UTxOSelectionException,
+)
 
 from heron_app.workers.worker import celery
 from heron_app.db.database import SessionLocal
@@ -14,31 +57,21 @@ from heron_app.db.models.transaction_output_asset import TransactionOutputAsset
 from heron_app.db.models.transaction_mint import TransactionMint
 from heron_app.db.models.minting_policies import MintingPolicy  # noqa: F401
 from heron_app.db.models.wallet import Wallet
-
-from blockfrost import BlockFrostApi, ApiUrls
-from pycardano import (
-    crypto, ExtendedSigningKey, TransactionInput, TransactionOutput as CardanoTxOutput,
-    TransactionBody, TransactionWitnessSet, VerificationKeyWitness, fee, Value, MultiAsset,
-    Transaction as CardanoTransaction, Address, BlockFrostChainContext, min_lovelace_post_alonzo,
-    Metadata, AlonzoMetadata, AuxiliaryData, AssetName, ScriptHash, Asset, TransactionBuilder,UTxO, datum_hash, PlutusData, PaymentSigningKey, SigningKey, VerificationKeyHash, NativeScript, ScriptPubkey, ScriptAll
+from heron_app.utils.cardano import (
+    TransactionSubmitError,
+    ValueNotConservedError,
+    BadInputsError,
+    GenericSubmitError,
 )
 
-from pycardano.plutus import RawPlutusData, Datum
-
 import cbor2
-from typing import Any, Dict, List, Union, Mapping, Optional
-
 import hashlib
-from pycardano.exception import TransactionFailedException, InsufficientUTxOBalanceException, UTxOSelectionException
-from heron_app.utils.cardano import TransactionSubmitError, ValueNotConservedError, BadInputsError, GenericSubmitError
 
-from cryptography.fernet import Fernet
-import os
-import json
-import traceback
-from datetime import datetime
-import time
-from collections import defaultdict
+
+# Suppress overly verbose logs from dependencies
+logging.getLogger("tenacity").setLevel(logging.ERROR)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("PyCardano").setLevel(logging.ERROR)
 
 
 logger = get_task_logger(__name__)
@@ -50,22 +83,35 @@ if not logger.hasHandlers():
     logger.addHandler(handler)
 logger.propagate = True
 
-WALLET_UTXO_CACHE = {}
+
+WALLET_UTXO_CACHE: Dict[str, list] = {}
 MAX_FEE = 0
 
 BLOCKFROST_API_KEY = os.getenv("BLOCKFROST_PROJECT_ID")
-network =  BLOCKFROST_API_KEY[:7].lower()
+
+if not BLOCKFROST_API_KEY:
+    logger.error("BLOCKFROST_PROJECT_ID environment variable is not set.")
+    raise RuntimeError("BLOCKFROST_PROJECT_ID environment variable is not set.")
+
+if len(BLOCKFROST_API_KEY) < 7:
+    logger.error("BLOCKFROST_PROJECT_ID value is invalid or too short.")
+    raise RuntimeError("BLOCKFROST_PROJECT_ID value is invalid or too short.")
+
+network = BLOCKFROST_API_KEY[:7].lower()
 
 if network not in ["mainnet", "preprod", "preview", "custom"]:
-    logger.error(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'.")
-    raise ValueError(f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'.")
+    logger.error(
+        f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'."
+    )
+    raise ValueError(
+        f"Invalid network: {network}. Must be one of 'mainnet', 'preprod', 'preview' or 'custom'."
+    )
 
 if network == "custom":
     logger.info("Using custom network configuration.")
     if os.getenv("CUSTOM_BLOCKFROST_API_URL") is None:
         logger.error("CUSTOM_BLOCKFROST_API_URL is not set for custom network.")
         raise ValueError("CUSTOM_BLOCKFROST_API_URL must be set for custom network.")
-
 
 logger.info(f"Using network: {network}")
 
@@ -78,6 +124,19 @@ network_map = {
 BASE_URL = network_map.get(network, os.getenv("CUSTOM_BLOCKFROST_API_URL"))
 
 
+def _get_blockfrost_context() -> BlockFrostChainContext:
+    """
+    Centralized Blockfrost chain context construction, so configuration and
+    error handling stay in one place.
+    """
+    return BlockFrostChainContext(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
+
+
+def _get_blockfrost_api() -> BlockFrostApi:
+    """
+    Centralized Blockfrost REST client construction.
+    """
+    return BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
 
 
 def enqueue_transaction(transaction_id):
@@ -92,39 +151,62 @@ def enqueue_transaction(transaction_id):
 def get_utxos_from_cache(address):
     return WALLET_UTXO_CACHE.get(address, [])
 
+
 def set_utxos_to_cache(address, utxo_list):
     WALLET_UTXO_CACHE[address] = utxo_list
 
+
+def _validate_wallet_address(address: str) -> None:
+    """
+    Basic validation for wallet address to avoid unnecessary Blockfrost calls.
+    """
+    if not address:
+        raise ValueError("Wallet address must not be empty.")
+    try:
+        Address.from_primitive(address)
+    except Exception as exc:
+        raise ValueError("Invalid Cardano address format.") from exc
+
+
 def reload_utxos(address):
-     
+    """
+    Fetch and cache all UTXOs for an address using Blockfrost, with internal
+    validation and robust error handling.
+    """
 
-    context = BlockFrostChainContext(
-        project_id=BLOCKFROST_API_KEY,
-        base_url=BASE_URL,
-    )
-
-    api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
-
+    _validate_wallet_address(address)
+    api = _get_blockfrost_api()
 
     page = 1
     all_utxos = []
 
-    while True:
-        raw_utxos = api.address_utxos(address=address, count=100, page=page)
-        if not raw_utxos:
-            break
+    try:
+        while True:
+            raw_utxos = api.address_utxos(address=address, count=100, page=page)
+            if not raw_utxos:
+                break
 
-        for utxo in raw_utxos:
-            entry = {
-                "tx_hash": utxo.tx_hash,
-                "tx_index": utxo.tx_index,
-                "amounts": {amt.unit: int(amt.quantity) for amt in utxo.amount}
-            }
-            all_utxos.append(entry)
+            for utxo in raw_utxos:
+                entry = {
+                    "tx_hash": utxo.tx_hash,
+                    "tx_index": utxo.tx_index,
+                    "amounts": {amt.unit: int(amt.quantity) for amt in utxo.amount},
+                }
+                all_utxos.append(entry)
 
-        if len(raw_utxos) < 100:
-            break  # No more pages
-        page += 1
+            if len(raw_utxos) < 100:
+                break  # No more pages
+            page += 1
+
+    except ApiError as e:
+        # Differentiate rate-limit / auth problems vs other upstream issues.
+        if e.status_code in (401, 403, 429):
+            logger.error(f"Blockfrost auth/rate-limit error during UTXO reload: {e}")
+        else:
+            logger.error(f"Blockfrost API error during UTXO reload: {e}")
+        # On any upstream error, keep cache untouched to allow retry logic
+        # in the transaction processing flow to handle backoff / requeue.
+        return
 
     set_utxos_to_cache(address, all_utxos)
 
@@ -170,12 +252,7 @@ def dict_to_datum(obj: dict) -> RawPlutusData:
 def process_transaction(self, transaction_id):
 
 
-    context = BlockFrostChainContext(
-        project_id=BLOCKFROST_API_KEY,
-        base_url=BASE_URL,
-    )
-
-    api = BlockFrostApi(project_id=BLOCKFROST_API_KEY, base_url=BASE_URL)
+    context = _get_blockfrost_context()
     
     logger.info(f"Processing transaction {transaction_id}")
 

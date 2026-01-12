@@ -7,7 +7,7 @@ from heron_app.schemas.transaction_mint import TransactionMint
 
 class TransactionCreate(BaseModel):
     wallet_id: UUID
-    outputs: List[TransactionOutputSchema]
+    outputs: Optional[List[TransactionOutputSchema]] = []
     metadata: Optional[dict] = None
     mint: Optional[List[TransactionMint]] = None
 

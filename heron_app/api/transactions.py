@@ -13,9 +13,42 @@ from heron_app.utils.registry_loader import get_registry_labels
 
 from uuid import uuid4
 from datetime import datetime
+from typing import Any
 
 
 router = APIRouter()
+
+
+def _normalise_metadata_values_to_str(value: Any, path: str = "metadata") -> Any:
+    """
+    Recursively walk a metadata structure and ensure that *all leaf values*
+    are strings. Numbers, booleans, and other simple JSON types are converted
+    to strings; complex or unsupported types are rejected with a 400 error.
+    """
+    if isinstance(value, dict):
+        return {
+            k: _normalise_metadata_values_to_str(v, f"{path}.{k}") for k, v in value.items()
+        }
+
+    if isinstance(value, list):
+        return [
+            _normalise_metadata_values_to_str(item, f"{path}[{idx}]")
+            for idx, item in enumerate(value)
+        ]
+
+    # Simple JSON scalar types are all converted to str
+    if isinstance(value, (str, int, float, bool)):
+        return str(value)
+
+    # We don't expect raw bytes or other complex objects in JSON metadata
+    raise HTTPException(
+        status_code=400,
+        detail=(
+            f"Invalid metadata value type at '{path}': {type(value).__name__}. "
+            "All metadata values must be JSON-compatible scalars that can be "
+            "represented as strings."
+        ),
+    )
 
 
 
@@ -102,7 +135,6 @@ def submit_transaction(tx: TransactionCreate):
 
         metadata_with_int_keys = None
 
-        # Inside your endpoint
         if tx.metadata is not None:
             if not isinstance(tx.metadata, dict):
                 raise HTTPException(status_code=400, detail="Metadata must be a dictionary")
@@ -125,9 +157,13 @@ def submit_transaction(tx: TransactionCreate):
                     status_code=400,
                     detail=f"The following metadata labels are not registered in CIP-0010: {invalid_labels}"
                 )
-
-
-            metadata_with_int_keys = {int(k): v for k, v in tx.metadata.items()}
+            
+            # Normalise all metadata values to strings so downstream (worker /
+            # pycardano / Blockfrost) never see floats or other unexpected types.
+            metadata_with_int_keys = {
+                int(k): _normalise_metadata_values_to_str(v, f"metadata[{k}]")
+                for k, v in tx.metadata.items()
+            }
 
 
         # Create base transaction record
